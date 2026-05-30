@@ -42,7 +42,7 @@ CREATE TABLE users (
 -- ----------------------------------------------------------------
 CREATE TABLE menu_items (
     id         INT          NOT NULL AUTO_INCREMENT,
-    item_id    VARCHAR(10)  NOT NULL,
+    item_id    VARCHAR(100) NOT NULL,
     nama_menu  VARCHAR(150) NOT NULL,
     kategori   VARCHAR(100) NOT NULL,
     created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
