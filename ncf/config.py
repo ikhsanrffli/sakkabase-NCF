@@ -17,22 +17,30 @@ DB_CONFIG = {
 }
 
 # ── Arsitektur NCF ────────────────────────────────────────────────────────────
+# Dataset sparse (rata-rata 3.1 interaksi/user) → model kapasitas kecil
+# MLP_LAYERS[0] harus = EMBEDDING_DIM * 2 (dimensi setelah concat)
 
-EMBEDDING_DIM = 64          # dimensi embedding user & item
-MLP_LAYERS    = [128, 64, 32]  # 128 = concat(user_emb, item_emb)
+EMBEDDING_DIM = 32
+MLP_LAYERS    = [64, 32, 16]
 DROPOUT       = 0.2
 
 # ── Training ──────────────────────────────────────────────────────────────────
 
-LR            = 0.0005      # diperkecil dari 0.001 → mencegah overshoot di epoch awal
+LR            = 0.001
+WEIGHT_DECAY  = 1e-5        # L2 regularisasi di Adam optimizer
 BATCH_SIZE    = 256
-NUM_EPOCHS    = 30          # tambah epoch agar konvergensi lebih stabil
-NUM_NEGATIVES = 4           # negative sample per 1 interaksi positif
+NUM_EPOCHS    = 50          # early stopping biasanya berhenti lebih awal
+NUM_NEGATIVES = 4
+
+# ── Early stopping ────────────────────────────────────────────────────────────
+
+EARLY_STOPPING_PATIENCE = 5  # stop jika HR@10 tidak naik selama N epoch berturut-turut
 
 # ── Evaluasi (leave-one-out) ──────────────────────────────────────────────────
 
-TOP_K        = 10
-NUM_TEST_NEG = 99           # negatif di set kandidat uji (+ 1 positif = 100 total)
+TOP_K             = 10
+NUM_TEST_NEG      = 99    # negatif di set kandidat uji (+ 1 positif = 100 total)
+TRAIN_EVAL_SAMPLE = 300   # jumlah pair positif yang di-sample untuk train HR@10
 
 # ── Path ──────────────────────────────────────────────────────────────────────
 
