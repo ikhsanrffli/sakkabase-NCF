@@ -5,8 +5,9 @@ from datetime import datetime
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-# Tambah root project ke path agar ncf module bisa diimport dari backend/
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Tambah root project ke path agar ncf module bisa diimport
+# __file__ = backend/routers/model.py → 3x dirname = project root (sakkabase-NCF/)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from database import get_db, SessionLocal
 from auth import require_admin

@@ -32,11 +32,16 @@ async function request(method, path, body = null) {
 
 function adaptMenu(m) {
   const codeMatch = m.item_id.match(/^([A-Z0-9]+)/);
+  const code = codeMatch ? codeMatch[1] : m.item_id;
+  // Fallback: extract name from item_id ("A07B - LE MINERAL 600ML" → "Le Mineral 600ml")
+  const nameFromId = m.item_id.includes(' - ')
+    ? m.item_id.split(' - ').slice(1).join(' - ').trim()
+    : m.item_id;
   return {
     id: m.item_id,
-    code: codeMatch ? codeMatch[1] : m.item_id,
+    code,
     dbId: m.id,
-    name: m.nama,
+    name: m.nama || nameFromId,
     category: m.kategori,
     icon: CATEGORY_ICONS[m.kategori] || '🍽️',
   };

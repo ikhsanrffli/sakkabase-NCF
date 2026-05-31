@@ -22,10 +22,11 @@ def _popularity_fallback(db: Session, limit: int = 10) -> list[schemas.Recommend
         .limit(limit)
         .all()
     )
+    max_cnt = rows[0][1] if rows else 1
     return [
         schemas.RecommendationItem(
             rank      = rank + 1,
-            score     = float(cnt),
+            score     = round(float(cnt) / max_cnt, 4),
             menu_item = item,
         )
         for rank, (item, cnt) in enumerate(rows)
