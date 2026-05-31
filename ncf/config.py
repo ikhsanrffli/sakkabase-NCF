@@ -24,9 +24,9 @@ DROPOUT       = 0.2
 
 # ── Training ──────────────────────────────────────────────────────────────────
 
-LR            = 0.001
+LR            = 0.0005      # diperkecil dari 0.001 → mencegah overshoot di epoch awal
 BATCH_SIZE    = 256
-NUM_EPOCHS    = 20
+NUM_EPOCHS    = 30          # tambah epoch agar konvergensi lebih stabil
 NUM_NEGATIVES = 4           # negative sample per 1 interaksi positif
 
 # ── Evaluasi (leave-one-out) ──────────────────────────────────────────────────
