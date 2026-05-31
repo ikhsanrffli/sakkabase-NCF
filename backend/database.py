@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-from backend.config import settings
+from config import settings
 
 DATABASE_URL = (
     f"mysql+pymysql://{settings.DB_USER}:{settings.DB_PASSWORD}"
