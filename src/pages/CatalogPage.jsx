@@ -42,7 +42,7 @@ export default function CatalogPage({ menus }) {
               <div className="menu-card-body">
                 <div className="menu-card-cat">{m.category}</div>
                 <div className="menu-card-name">{m.name}</div>
-                <div className="menu-card-id">{m.id}</div>
+                <div className="menu-card-id">{m.code || m.id}</div>
               </div>
             </div>
           ))}

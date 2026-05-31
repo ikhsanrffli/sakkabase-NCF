@@ -1,73 +1,125 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { StatCard } from '../components/UI';
+import { api } from '../api/apiClient';
 
 export default function DashboardPage({ menus, orders, users }) {
   const { currentUser } = useAuth();
   const isAdmin = currentUser.role === 'admin';
 
   if (isAdmin) {
-    const regUsers = users.filter(u => u.role === 'user');
-    const recentOrders = [...orders].reverse().slice(0, 5);
+    return <AdminDashboard menus={menus} orders={orders} users={users} />;
+  }
+  return <UserDashboard orders={orders} />;
+}
 
-    return (
-      <>
-        <div className="stats-grid">
-          <StatCard label="Total Pengguna"  value={regUsers.length}  sub="User terdaftar"       icon="👥" />
-          <StatCard label="Total Menu"      value={menus.length}     sub="Item dalam katalog"   icon="🍽️" />
-          <StatCard label="Total Pemesanan" value={orders.length}    sub="Interaksi terekam"    icon="📋" />
-          <StatCard label="Model NCF"       value="Aktif"            sub="Neural Collaborative Filtering" icon="🤖" />
-        </div>
+function AdminDashboard({ menus, orders, users }) {
+  const [modelStatus, setModelStatus] = useState(null);
+  const [retraining, setRetraining] = useState(false);
 
-        <div className="dash-2col">
-          <div className="page-card">
-            <div className="card-header">
-              <div className="card-header-title">Pesanan Terbaru</div>
-            </div>
-            <div>
-              {recentOrders.map(o => (
-                <div key={o.id} style={{
-                  padding: '.6rem 1.2rem', borderBottom: '1px solid var(--gray2)',
-                  fontSize: '.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                }}>
-                  <span><strong>{o.userName}</strong> — {o.menuName}</span>
-                  <span style={{ color: 'var(--gray3)', fontSize: '.72rem' }}>{o.date}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+  useEffect(() => {
+    api.getModelStatus().then(setModelStatus).catch(() => {});
+  }, []);
 
-          <div className="page-card">
-            <div className="card-header">
-              <div className="card-header-title">Konfigurasi Model NCF</div>
-            </div>
-            <div className="card-body" style={{ fontSize: '.82rem', color: 'var(--gray4)', lineHeight: 2 }}>
-              <div>📐 <strong>Embedding Dim:</strong> 64</div>
-              <div>🧠 <strong>Hidden Layer:</strong> 128 → 64 → 32</div>
-              <div>⚡ <strong>Aktivasi:</strong> ReLU + Sigmoid</div>
-              <div>📉 <strong>Loss:</strong> Binary Cross-Entropy (BCE)</div>
-              <div>🔄 <strong>Optimizer:</strong> Adam (lr = 0.001)</div>
-              <div>📦 <strong>Batch Size:</strong> 256 | Epoch: 20</div>
-              <div>🔀 <strong>Dataset Split:</strong> Leave-One-Out</div>
-              <div>📊 <strong>Evaluasi:</strong> HR@10 &amp; NDCG@10</div>
-            </div>
-          </div>
-        </div>
-      </>
-    );
+  async function handleRetrain() {
+    setRetraining(true);
+    try {
+      await api.retrainModel();
+      setModelStatus(s => s ? { ...s, status: 'training' } : { status: 'training' });
+    } catch (err) {
+      alert('Gagal memulai retrain: ' + err.message);
+    } finally {
+      setRetraining(false);
+    }
   }
 
-  /* ── User dashboard ─────────────────────── */
-  const myOrders = orders.filter(o => o.userId === currentUser.id);
-  const recentMyOrders = [...myOrders].reverse().slice(0, 4);
+  const regUsers = users.filter(u => u.role === 'user');
+  const recentOrders = [...orders].reverse().slice(0, 5);
 
   return (
     <>
       <div className="stats-grid">
-        <StatCard label="Pesanan Saya"  value={myOrders.length} sub="Total interaksi"    icon="📋" />
-        <StatCard label="Rekomendasi"   value="10"              sub="Top-N menu untukmu" icon="⭐" />
+        <StatCard label="Total Pengguna"  value={regUsers.length}  sub="User terdaftar"              icon="👥" />
+        <StatCard label="Total Menu"      value={menus.length}     sub="Item dalam katalog"           icon="🍽️" />
+        <StatCard label="Total Pemesanan" value={orders.length}    sub="Interaksi terekam"            icon="📋" />
+        <StatCard
+          label="Model NCF"
+          value={modelStatus ? (modelStatus.status === 'ready' ? 'Siap' : modelStatus.status === 'training' ? 'Training...' : modelStatus.status) : '—'}
+          sub={modelStatus?.hr_at_10 != null ? `HR@10: ${modelStatus.hr_at_10.toFixed(4)}` : 'Neural Collaborative Filtering'}
+          icon="🤖"
+        />
       </div>
 
-      {/* Quick action buttons */}
+      <div className="dash-2col">
+        <div className="page-card">
+          <div className="card-header">
+            <div className="card-header-title">Pesanan Terbaru</div>
+          </div>
+          <div>
+            {recentOrders.length === 0 ? (
+              <div style={{ padding: '1.2rem', textAlign: 'center', color: 'var(--gray3)', fontSize: '.83rem' }}>
+                Belum ada pesanan.
+              </div>
+            ) : recentOrders.map(o => (
+              <div key={o.id} style={{
+                padding: '.6rem 1.2rem', borderBottom: '1px solid var(--gray2)',
+                fontSize: '.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+              }}>
+                <span><strong>{o.userName}</strong> — {o.menuName}</span>
+                <span style={{ color: 'var(--gray3)', fontSize: '.72rem' }}>{o.date}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="page-card">
+          <div className="card-header">
+            <div className="card-header-title">Konfigurasi Model NCF</div>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleRetrain}
+              disabled={retraining || modelStatus?.status === 'training'}
+            >
+              {retraining || modelStatus?.status === 'training' ? '⏳ Training...' : '🔄 Retrain'}
+            </button>
+          </div>
+          <div className="card-body" style={{ fontSize: '.82rem', color: 'var(--gray4)', lineHeight: 2 }}>
+            <div>📐 <strong>Embedding Dim:</strong> 16</div>
+            <div>🧠 <strong>Hidden Layer:</strong> 32 → 16 → 8</div>
+            <div>⚡ <strong>Aktivasi:</strong> ReLU + Sigmoid</div>
+            <div>📉 <strong>Loss:</strong> Binary Cross-Entropy (BCE)</div>
+            <div>🔄 <strong>Optimizer:</strong> Adam (lr = 0.001, wd = 1e-5)</div>
+            <div>📦 <strong>Dropout:</strong> 0.3 | Epoch: 50</div>
+            <div>🔀 <strong>Dataset Split:</strong> Leave-One-Out</div>
+            <div>📊 <strong>Evaluasi:</strong> HR@10 &amp; NDCG@10</div>
+            {modelStatus?.hr_at_10 != null && (
+              <>
+                <hr style={{ border: 'none', borderTop: '1px solid var(--gray2)', margin: '.4rem 0' }} />
+                <div>✅ <strong>HR@10:</strong> {modelStatus.hr_at_10.toFixed(4)}</div>
+                <div>✅ <strong>NDCG@10:</strong> {modelStatus.ndcg_at_10?.toFixed(4) ?? '—'}</div>
+                <div style={{ fontSize: '.72rem', color: 'var(--gray3)' }}>
+                  Trained: {modelStatus.trained_at ? new Date(modelStatus.trained_at).toLocaleString('id-ID') : '—'}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function UserDashboard({ orders }) {
+  const { currentUser } = useAuth();
+  const recentOrders = [...orders].reverse().slice(0, 4);
+
+  return (
+    <>
+      <div className="stats-grid">
+        <StatCard label="Pesanan Saya"  value={orders.length} sub="Total interaksi"    icon="📋" />
+        <StatCard label="Rekomendasi"   value="10"            sub="Top-N menu untukmu" icon="⭐" />
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
         <div className="page-card" style={{ marginBottom: 0 }}>
           <div className="card-body" style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
@@ -105,25 +157,19 @@ export default function DashboardPage({ menus, orders, users }) {
         <div className="card-header">
           <div className="card-header-title">Riwayat Pesanan Terbaru</div>
         </div>
-        {recentMyOrders.length === 0 ? (
+        {recentOrders.length === 0 ? (
           <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--gray3)', fontSize: '.83rem' }}>
             Belum ada pesanan. Yuk mulai pesan! 🍽️
           </div>
-        ) : (
-          recentMyOrders.map(o => (
-            <div key={o.id} style={{
-              padding: '.65rem 1.2rem', borderBottom: '1px solid var(--gray2)',
-              fontSize: '.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-            }}>
-              <span>
-                {menus.find(m => m.id === o.menuId)?.icon}{' '}
-                <strong>{o.menuName}</strong>
-                {o.qty > 1 && <span style={{ color: 'var(--green)', marginLeft: '.3rem' }}>×{o.qty}</span>}
-              </span>
-              <span style={{ color: 'var(--gray3)', fontSize: '.72rem' }}>{o.date}</span>
-            </div>
-          ))
-        )}
+        ) : recentOrders.map(o => (
+          <div key={o.id} style={{
+            padding: '.65rem 1.2rem', borderBottom: '1px solid var(--gray2)',
+            fontSize: '.82rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+          }}>
+            <strong>{o.menuName}</strong>
+            <span style={{ color: 'var(--gray3)', fontSize: '.72rem' }}>{o.date}</span>
+          </div>
+        ))}
       </div>
     </>
   );

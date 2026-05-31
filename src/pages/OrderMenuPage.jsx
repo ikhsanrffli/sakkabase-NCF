@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api/apiClient';
 
-// Kategori yang relevan untuk pemesanan (exclude Barber, Tambahan, Lainnya)
 const FOOD_DRINK_CATS = [
   'Kopi & Espresso','Non-Kopi','Juice','Minuman',
   'Croissant & Pastry','Pudding','Snack Ringan',
   'Gorengan & Snack','Toast','Nasi Goreng','Nasi Lauk',
   'Mie & Bihun','Pasta','Indomie','Chicken Steak',
-  'Salad','Ricebowl','Sayur','Ice Cream','Produk Kopi',
+  'Salad','Ricebowl','Sayur','Ice Cream',
 ];
 
 export default function OrderMenuPage({ menus, orders, setOrders }) {
@@ -18,8 +18,8 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
   const [showCart, setShowCart] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successItems, setSuccessItems] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Hanya tampilkan menu makanan & minuman (exclude Barber, Tambahan, dll)
   const orderableMenus = menus.filter(m => FOOD_DRINK_CATS.includes(m.category));
   const dynamicCats = ['Semua', ...new Set(orderableMenus.map(m => m.category))];
 
@@ -52,23 +52,24 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
     return cart.reduce((acc, c) => acc + c.qty, 0);
   }
 
-  function handleCheckout() {
-    if (cart.length === 0) return;
-    const today = new Date().toISOString().split('T')[0];
-    const newOrders = cart.map(item => ({
-      id: 'ORD' + String(Date.now() + Math.random()).replace('.', '').slice(-6),
-      userId: currentUser.id,
-      userName: currentUser.name,
-      menuId: item.id,
-      menuName: item.name,
-      qty: item.qty,
-      date: today,
-    }));
-    setOrders(prev => [...prev, ...newOrders]);
-    setSuccessItems([...cart]);
-    setCart([]);
-    setShowCart(false);
-    setShowSuccess(true);
+  async function handleCheckout() {
+    if (cart.length === 0 || submitting) return;
+    setSubmitting(true);
+    try {
+      for (const item of cart) {
+        await api.createOrder(item.dbId);
+      }
+      const updatedOrders = await api.getMyOrders();
+      setOrders(updatedOrders);
+      setSuccessItems([...cart]);
+      setCart([]);
+      setShowCart(false);
+      setShowSuccess(true);
+    } catch (err) {
+      alert('Gagal memesan: ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (showSuccess) {
@@ -110,8 +111,6 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
 
   return (
     <div style={{ position: 'relative' }}>
-
-      {/* ── Search & filter ── */}
       <div style={{ display: 'flex', gap: '.6rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
         <div className="search-bar" style={{ flex: 1, maxWidth: 300 }}>
           <span className="search-icon">🔍</span>
@@ -127,7 +126,6 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
         </span>
       </div>
 
-      {/* ── Category tabs ── */}
       <div style={{ display: 'flex', gap: '.4rem', flexWrap: 'wrap', marginBottom: '1.2rem' }}>
         {dynamicCats.map(cat => (
           <button
@@ -149,7 +147,6 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
         ))}
       </div>
 
-      {/* ── Menu grid ── */}
       {filtered.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">🔍</div>
@@ -174,7 +171,7 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
                 <div className="menu-card-body">
                   <div className="menu-card-cat">{m.category}</div>
                   <div className="menu-card-name">{m.name}</div>
-                  <div className="menu-card-id" style={{ marginBottom: '.6rem' }}>{m.id}</div>
+                  <div className="menu-card-id" style={{ marginBottom: '.6rem' }}>{m.code || m.id}</div>
 
                   {inCart ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
@@ -216,7 +213,6 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
         </div>
       )}
 
-      {/* ── Floating cart button ── */}
       {cart.length > 0 && !showCart && (
         <div style={{ position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 200 }}>
           <button
@@ -241,7 +237,6 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
         </div>
       )}
 
-      {/* ── Cart drawer / modal ── */}
       {showCart && (
         <div
           className="modal-overlay"
@@ -326,8 +321,13 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
                   <button className="btn btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => setShowCart(false)}>
                     Lanjut Pilih
                   </button>
-                  <button className="btn btn-primary" style={{ flex: 2, justifyContent: 'center', padding: '.65rem' }} onClick={handleCheckout}>
-                    ✓ Konfirmasi Pesanan
+                  <button
+                    className="btn btn-primary"
+                    style={{ flex: 2, justifyContent: 'center', padding: '.65rem' }}
+                    onClick={handleCheckout}
+                    disabled={submitting}
+                  >
+                    {submitting ? '⏳ Memproses...' : '✓ Konfirmasi Pesanan'}
                   </button>
                 </div>
               </>

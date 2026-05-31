@@ -1,35 +1,51 @@
-import { createContext, useContext, useState } from 'react';
-import { USERS_DB } from '../data/initialData';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { api, getToken } from '../api/apiClient';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const [users, setUsers] = useState(USERS_DB);
+  const [loading, setLoading] = useState(true);
 
-  function login(username, password, role) {
-    const found = users.find(
-      u => u.username === username && u.password === password && u.role === role
-    );
-    if (!found) return { success: false, message: 'Username/password salah atau peran tidak sesuai.' };
-    setCurrentUser(found);
-    return { success: true };
+  useEffect(() => {
+    if (getToken()) {
+      api.getMe()
+        .then(u => setCurrentUser(u))
+        .catch(() => api.logout())
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  async function login(username, password) {
+    await api.login(username, password);
+    const user = await api.getMe();
+    setCurrentUser(user);
   }
 
   function logout() {
+    api.logout();
     setCurrentUser(null);
   }
 
-  function register(name, username, password) {
-    if (users.find(u => u.username === username))
-      return { success: false, message: 'Username sudah digunakan.' };
-    const newUser = { id: 'u' + Date.now(), username, password, role: 'user', name };
-    setUsers(prev => [...prev, newUser]);
-    return { success: true };
+  async function register(nama_lengkap, username, password) {
+    await api.register(nama_lengkap, username, password);
+  }
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', fontSize: '1rem', color: '#888', fontFamily: 'sans-serif'
+      }}>
+        Memuat...
+      </div>
+    );
   }
 
   return (
-    <AuthContext.Provider value={{ currentUser, users, setUsers, login, logout, register }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, register }}>
       {children}
     </AuthContext.Provider>
   );

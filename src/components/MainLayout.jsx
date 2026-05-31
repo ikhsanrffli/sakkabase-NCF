@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { MENUS_DATA, ORDERS_DATA } from '../data/initialData';
+import { api } from '../api/apiClient';
 
 import DashboardPage        from '../pages/DashboardPage';
 import UsersPage            from '../pages/UsersPage';
 import MenusPage            from '../pages/MenusPage';
 import OrdersPage           from '../pages/OrdersPage';
 import RecommendationsPage  from '../pages/RecommendationsPage';
-import CatalogPage           from '../pages/CatalogPage';
+import CatalogPage          from '../pages/CatalogPage';
 import MyRecommendationsPage from '../pages/MyRecommendationsPage';
-import OrderMenuPage         from '../pages/OrderMenuPage';
+import OrderMenuPage        from '../pages/OrderMenuPage';
 
 const ADMIN_NAV = [
   { group: 'Utama', items: [
@@ -46,51 +46,104 @@ const PAGE_TITLES = {
 };
 
 export default function MainLayout() {
-  const { currentUser, users, setUsers, logout } = useAuth();
+  const { currentUser, logout } = useAuth();
   const [page, setPage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [menus, setMenus] = useState(MENUS_DATA);
-  const [orders, setOrders] = useState(ORDERS_DATA);
 
-  const nav = currentUser.role === 'admin' ? ADMIN_NAV : USER_NAV;
+  const [menus, setMenus] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState('');
+
+  const isAdmin = currentUser.role === 'admin';
+  const nav = isAdmin ? ADMIN_NAV : USER_NAV;
+
+  const loadData = useCallback(async () => {
+    setDataLoading(true);
+    setDataError('');
+    try {
+      const fetchedMenus = await api.getMenus();
+      setMenus(fetchedMenus);
+
+      if (isAdmin) {
+        const fetchedUsers = await api.getUsers();
+        setUsers(fetchedUsers);
+        const usersById = Object.fromEntries(fetchedUsers.map(u => [u.id, u.name]));
+        const fetchedOrders = await api.getAllOrders(usersById);
+        setOrders(fetchedOrders);
+      } else {
+        const fetchedOrders = await api.getMyOrders();
+        setOrders(fetchedOrders);
+      }
+    } catch (e) {
+      setDataError('Gagal memuat data: ' + e.message);
+    } finally {
+      setDataLoading(false);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   function navigate(p) {
     setPage(p);
     setSidebarOpen(false);
   }
 
-  // Listen for navigate events dispatched from child pages (e.g. dashboard quick-action buttons)
   useEffect(() => {
     const handler = e => navigate(e.detail);
     document.addEventListener('navigate', handler);
     return () => document.removeEventListener('navigate', handler);
   }, []);
 
-  const sharedProps = { menus, setMenus, orders, setOrders, users, setUsers };
-
   function renderPage() {
+    if (dataLoading) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, color: 'var(--gray4)', fontSize: '.9rem' }}>
+          Memuat data...
+        </div>
+      );
+    }
+    if (dataError) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <div style={{ color: '#c0392b', fontSize: '.9rem', marginBottom: '1rem' }}>⚠️ {dataError}</div>
+          <button className="btn btn-primary" onClick={loadData}>Coba Lagi</button>
+        </div>
+      );
+    }
+
     switch (page) {
-      case 'dashboard':          return <DashboardPage {...sharedProps} />;
-      case 'users':              return <UsersPage {...sharedProps} />;
-      case 'menus':              return <MenusPage {...sharedProps} />;
-      case 'orders':             return <OrdersPage {...sharedProps} />;
-      case 'recommendations':    return <RecommendationsPage {...sharedProps} />;
-      case 'catalog':            return <CatalogPage menus={menus} />;
-      case 'order-menu':         return <OrderMenuPage menus={menus} orders={orders} setOrders={setOrders} />;
-      case 'my-recommendations': return <MyRecommendationsPage menus={menus} orders={orders} />;
-      default:                   return null;
+      case 'dashboard':
+        return <DashboardPage menus={menus} orders={orders} users={users} />;
+      case 'users':
+        return <UsersPage users={users} setUsers={setUsers} setOrders={setOrders} />;
+      case 'menus':
+        return <MenusPage menus={menus} />;
+      case 'orders':
+        return <OrdersPage orders={orders} users={users} menus={menus} />;
+      case 'recommendations':
+        return <RecommendationsPage users={users} orders={orders} menus={menus} />;
+      case 'catalog':
+        return <CatalogPage menus={menus} />;
+      case 'order-menu':
+        return <OrderMenuPage menus={menus} orders={orders} setOrders={setOrders} />;
+      case 'my-recommendations':
+        return <MyRecommendationsPage orders={orders} />;
+      default:
+        return null;
     }
   }
 
   return (
     <div className="main-layout">
-      {/* Sidebar overlay (mobile) */}
       <div
         className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`}
         onClick={() => setSidebarOpen(false)}
       />
 
-      {/* Sidebar */}
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <div className="sb-icon">S</div>
@@ -132,7 +185,6 @@ export default function MainLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="main-content">
         <header className="topbar">
           <div className="topbar-left">
