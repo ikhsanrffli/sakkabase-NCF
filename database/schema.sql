@@ -164,7 +164,7 @@ INSERT INTO users (nama_lengkap, username, password, role, source)
 VALUES (
     'Administrator',
     'admin',
-    '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewLkBR8nW5Ay5HUO',
+    '$2b$12$O1gqvVRWCZgPj1OFOH/BLOswgZXkL8jBDMN0a1p/t7VCdzx8t7WI6',
     'admin',
     'registered'
 );
