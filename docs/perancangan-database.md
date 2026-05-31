@@ -71,7 +71,7 @@ erDiagram
 
     MENU_ITEMS {
         INT id PK
-        VARCHAR(10) item_id UK
+        VARCHAR(100) item_id UK
         VARCHAR(150) nama_menu
         VARCHAR(100) kategori
         DATETIME created_at
@@ -143,17 +143,19 @@ karena entitas historis tidak memiliki kredensial *login*.
 ### 3.3.3.2 Tabel `menu_items`
 
 Tabel `menu_items` berfungsi sebagai data *master* katalog menu kafe. Kolom
-`item_id` menyimpan kode alfanumerik asli dari sistem operasional kafe
-(contoh: `A01E`, `C03E`) sebagai *natural key* yang bersifat unik, sementara
-kolom `id` berfungsi sebagai *surrogate key* untuk kebutuhan relasi antar
-tabel.
+`item_id` menyimpan string penuh produk dari sistem POS kafe sebagai *natural
+key* yang bersifat unik — format: `{kode} - {nama varian}`, contoh:
+`A01E - CAPPUCCINO / COLD REGULAR`. Pendekatan ini diperlukan karena satu kode
+dasar (misal `A01E`) dapat memiliki beberapa varian ukuran/suhu yang masing-masing
+diperlakukan sebagai item berbeda oleh model NCF. Kolom `id` berfungsi sebagai
+*surrogate key* untuk kebutuhan relasi antar tabel.
 
 **Tabel 3.27 Struktur Tabel `menu_items`**
 
 | No | Nama *Field* | Tipe Data | Panjang | *Constraint* | Keterangan |
 |:--:|---|---|:--:|---|---|
 | 1 | `id` | INT | — | PK, AUTO_INCREMENT, NOT NULL | Identitas unik menu (*surrogate key*) |
-| 2 | `item_id` | VARCHAR | 10 | UNIQUE, NOT NULL | Kode item asli dari sistem kafe (contoh: `A01E`, `C03E`) |
+| 2 | `item_id` | VARCHAR | 100 | UNIQUE, NOT NULL | String penuh produk dari POS (contoh: `A01E - CAPPUCCINO / COLD REGULAR`) |
 | 3 | `nama_menu` | VARCHAR | 150 | NOT NULL | Nama menu yang ditampilkan di katalog |
 | 4 | `kategori` | VARCHAR | 100 | NOT NULL | Kategori menu (contoh: `Kopi & Espresso`, `Nasi Goreng`) |
 | 5 | `created_at` | DATETIME | — | NOT NULL, DEFAULT `CURRENT_TIMESTAMP` | Waktu data menu pertama kali ditambahkan |
@@ -284,7 +286,7 @@ CREATE TABLE users (
 -- ----------------------------------------------------------------
 CREATE TABLE menu_items (
     id         INT          NOT NULL AUTO_INCREMENT,
-    item_id    VARCHAR(10)  NOT NULL,
+    item_id    VARCHAR(100) NOT NULL,
     nama_menu  VARCHAR(150) NOT NULL,
     kategori   VARCHAR(100) NOT NULL,
     created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
