@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -17,8 +17,8 @@ from database import get_db
 import models
 import schemas
 
-pwd_context   = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+pwd_context    = CryptContext(schemes=["bcrypt"], deprecated="auto")
+bearer_scheme  = HTTPBearer()
 
 
 # ── Password ──────────────────────────────────────────────────────────────────
@@ -62,10 +62,10 @@ def _decode_token(token: str) -> schemas.TokenData:
 # ── Dependencies ──────────────────────────────────────────────────────────────
 
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db:    Session = Depends(get_db),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db:          Session = Depends(get_db),
 ) -> models.User:
-    token_data = _decode_token(token)
+    token_data = _decode_token(credentials.credentials)
     user = db.query(models.User).filter(models.User.id == token_data.user_id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User tidak ditemukan")
