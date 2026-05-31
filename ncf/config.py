@@ -17,12 +17,13 @@ DB_CONFIG = {
 }
 
 # ── Arsitektur NCF ────────────────────────────────────────────────────────────
-# Dataset sparse (rata-rata 3.1 interaksi/user) → model kapasitas kecil
+# Config B — hasil grid search terbaik (HR@10=0.3620, NDCG@10=0.1889)
+# Dataset sparse (avg 3.1 interaksi/user) → model kapasitas kecil cukup
 # MLP_LAYERS[0] harus = EMBEDDING_DIM * 2 (dimensi setelah concat)
 
-EMBEDDING_DIM = 32
-MLP_LAYERS    = [64, 32, 16]
-DROPOUT       = 0.2
+EMBEDDING_DIM = 16
+MLP_LAYERS    = [32, 16, 8]
+DROPOUT       = 0.3
 
 # ── Training ──────────────────────────────────────────────────────────────────
 
