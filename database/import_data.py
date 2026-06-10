@@ -149,19 +149,27 @@ PRICE_LOOKUP = {
 
 # Default harga berdasarkan huruf pertama item_id
 _CATEGORY_DEFAULT = {"A": 20000, "B": 50000, "C": 25000, "D": 20000}
+_LARGE_KEYWORDS   = ["/ LARGE", "/LARGE", "/ HOT LARGE", "/ COLD LARGE"]
+_LARGE_PREMIUM    = 5000
 
 
-def get_price(item_id: str) -> int:
-    """Estimasi harga berdasarkan kode item (prefix 4-char, 3-char, lalu huruf pertama)."""
+def get_price(item_id: str, nama_menu: str = "") -> int:
+    """Estimasi harga berdasarkan kode item; item LARGE mendapat +5.000."""
     m = re.match(r'^([A-Z]{1,2}\d{1,2}[A-Z]?)', item_id.upper())
     if not m:
         return 0
     code = m.group(1)
+    base_price = 0
     for length in (len(code), len(code) - 1, 2, 1):
         prefix = code[:length]
         if prefix in PRICE_LOOKUP:
-            return PRICE_LOOKUP[prefix]
-    return _CATEGORY_DEFAULT.get(code[0].upper(), 15000)
+            base_price = PRICE_LOOKUP[prefix]
+            break
+    if base_price == 0:
+        base_price = _CATEGORY_DEFAULT.get(code[0].upper(), 15000)
+    if any(kw in nama_menu.upper() for kw in _LARGE_KEYWORDS):
+        base_price += _LARGE_PREMIUM
+    return base_price
 
 
 # ── Helper functions ──────────────────────────────────────────────────────────
@@ -174,12 +182,14 @@ def parse_produk(produk_str: str) -> tuple:
     produk_str = produk_str.strip()
     first_char = produk_str[0].upper() if produk_str else ""
     kategori   = KATEGORI_MAP.get(first_char, "Lainnya")
-    price      = get_price(produk_str)
 
     if " - " in produk_str:
         _, nama_menu = produk_str.split(" - ", 1)
-        return produk_str, nama_menu.strip(), kategori, price
+        nama_menu = nama_menu.strip()
+        price = get_price(produk_str, nama_menu)
+        return produk_str, nama_menu, kategori, price
 
+    price = get_price(produk_str, produk_str)
     return produk_str, produk_str, kategori, price
 
 

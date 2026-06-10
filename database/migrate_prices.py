@@ -79,31 +79,44 @@ PRICE_LOOKUP = {
 _CATEGORY_DEFAULT = {"A": 20000, "B": 50000, "C": 25000, "D": 20000, "P": 50000}
 
 
-def get_price(item_id: str) -> int:
+_LARGE_KEYWORDS = ["/ LARGE", "/LARGE", "/ HOT LARGE", "/ COLD LARGE"]
+_LARGE_PREMIUM  = 5000
+
+
+def get_price(item_id: str, nama_menu: str = "") -> int:
     m = re.match(r'^([A-Z]{1,2}\d{1,2}[A-Z]?)', item_id.upper())
     if not m:
         return 0
     code = m.group(1)
+    base_price = 0
     for length in (len(code), len(code) - 1, 2, 1):
         prefix = code[:length]
         if prefix in PRICE_LOOKUP:
-            return PRICE_LOOKUP[prefix]
-    return _CATEGORY_DEFAULT.get(code[0].upper(), 15000)
+            base_price = PRICE_LOOKUP[prefix]
+            break
+    if base_price == 0:
+        base_price = _CATEGORY_DEFAULT.get(code[0].upper(), 15000)
+
+    upper_name = nama_menu.upper()
+    if any(kw in upper_name for kw in _LARGE_KEYWORDS):
+        base_price += _LARGE_PREMIUM
+
+    return base_price
 
 
 def main():
     conn   = mysql.connector.connect(**DB_CONFIG)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id, item_id, price FROM menu_items")
+    cursor.execute("SELECT id, item_id, nama_menu, price FROM menu_items")
     rows = cursor.fetchall()
     print(f"Ditemukan {len(rows)} menu item.")
 
     updated = zero_before = 0
-    for row_id, item_id, current_price in rows:
+    for row_id, item_id, nama_menu, current_price in rows:
         if current_price == 0:
             zero_before += 1
-        new_price = get_price(item_id)
+        new_price = get_price(item_id, nama_menu)
         if new_price != current_price:
             cursor.execute("UPDATE menu_items SET price = %s WHERE id = %s", (new_price, row_id))
             updated += 1
