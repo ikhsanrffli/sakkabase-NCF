@@ -3,7 +3,7 @@ import { api } from '../api/apiClient';
 import { formatScore } from '../utils/ncfUtils';
 
 export default function RecommendationsPage({ users, orders, menus }) {
-  const regUsers = users.filter(u => u.role === 'user');
+  const regUsers = users.filter(u => u.source === 'registered');
   const [selectedUserId, setSelectedUserId] = useState(regUsers[0]?.id ?? '');
   const [recs, setRecs] = useState([]);
   const [recsLoading, setRecsLoading] = useState(false);
