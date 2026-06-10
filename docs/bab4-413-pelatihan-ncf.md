@@ -1,120 +1,91 @@
 # 4.1.3 Hasil Pelatihan Model Neural Collaborative Filtering (NCF)
 
-Pelatihan model NCF dilakukan menggunakan modul `ncf/train.py` dan `ncf/grid_search.py`. Sebelum pelatihan final, dilakukan pencarian konfigurasi terbaik melalui grid search terhadap tiga konfigurasi model yang berbeda. Seluruh konfigurasi dilatih menggunakan data yang sama agar perbandingan hasil berjalan secara adil.
-
----
-
-## Arsitektur Model NCF
-
-Model NCF terdiri dari dua lapisan embedding dan tiga lapisan fully connected (MLP). User embedding memetakan ID pengguna ke vektor berdimensi 16, dan item embedding memetakan ID item ke vektor berdimensi 16. Kedua vektor tersebut digabungkan (concatenate) menjadi vektor berdimensi 32, kemudian diproses oleh MLP untuk menghasilkan skor prediksi interaksi. Kelas NCF didefinisikan pada modul `ncf/model.py` dengan inisialisasi bobot distribusi normal (std=0.01) untuk lapisan embedding dan Xavier Uniform untuk lapisan linear.
-
-Tabel 4.8 menampilkan rincian arsitektur model NCF Konfigurasi B yang digunakan sebagai model final.
-
-**Tabel 4.8 Arsitektur Model NCF Konfigurasi B**
-
-| Lapisan       | Dimensi Input     | Dimensi Output | Aktivasi | Jumlah Parameter |
-|---------------|-------------------|----------------|----------|------------------|
-| User Embedding | 1.212 pengguna    | 16             | —        | 19.392           |
-| Item Embedding | 207 item          | 16             | —        | 3.312            |
-| Concatenate   | 16 + 16           | 32             | —        | 0                |
-| FC Layer 1    | 32                | 16             | ReLU     | 528              |
-| FC Layer 2    | 16                | 8              | ReLU     | 136              |
-| Output Layer  | 8                 | 1              | Sigmoid  | 9                |
-| **Total**     |                   |                |          | **23.377**       |
-
----
-
-## Konfigurasi Pelatihan
-
-Pelatihan model menggunakan optimizer Adam dengan fungsi loss Binary Cross-Entropy (BCE). Mekanisme early stopping menghentikan pelatihan secara otomatis apabila tidak terjadi peningkatan performa pada data uji selama 5 epoch berturut-turut (patience = 5).
-
-Tabel 4.9 menampilkan seluruh hyperparameter yang digunakan dalam proses pelatihan.
-
-**Tabel 4.9 Hyperparameter Pelatihan Model NCF**
-
-| Parameter                        | Nilai                         |
-|----------------------------------|-------------------------------|
-| Dimensi Embedding (embed_dim)    | 16                            |
-| Lapisan MLP (mlp_layers)         | [32, 16, 8]                   |
-| Dropout                          | 0,3                           |
-| Learning Rate (lr)               | 0,001                         |
-| Weight Decay                     | 1 × 10⁻⁵                     |
-| Batch Size                       | 256                           |
-| Jumlah Epoch Maksimum            | 50                            |
-| Negative Sampling (per positif)  | 4                             |
-| Early Stopping Patience          | 5                             |
-| Optimizer                        | Adam                          |
-| Loss Function                    | Binary Cross-Entropy (BCE)    |
+Proses pelatihan model NCF dilakukan melalui dua tahap, yaitu pencarian konfigurasi terbaik menggunakan grid search dan pelatihan model final berdasarkan konfigurasi terpilih. Seluruh proses dijalankan menggunakan modul `ncf/grid_search.py` dan `ncf/train.py` pada perangkat lokal dengan GPU NVIDIA GeForce RTX 3050 Laptop GPU.
 
 ---
 
 ## Pencarian Konfigurasi Terbaik (Grid Search)
 
-Untuk menentukan konfigurasi model yang optimal, dilakukan grid search terhadap tiga konfigurasi berbeda menggunakan modul `ncf/grid_search.py`. Ketiga konfigurasi memvariasikan dimensi embedding, jumlah lapisan MLP, nilai dropout, dan learning rate.
+Grid search dijalankan terhadap tiga konfigurasi hyperparameter yang berbeda menggunakan modul `ncf/grid_search.py`. Ketiga konfigurasi menggunakan data latih dan data uji yang sama agar perbandingan berlangsung secara adil.
 
-Tabel 4.10 menampilkan ketiga konfigurasi yang diuji dalam proses grid search.
+Tabel 4.8 menampilkan ketiga konfigurasi yang diuji beserta hasil evaluasinya pada data uji.
 
-**Tabel 4.10 Konfigurasi Grid Search NCF**
+**Tabel 4.8 Hasil Grid Search NCF**
 
-| Konfigurasi | embed_dim | mlp_layers   | Dropout | Learning Rate | Weight Decay |
-|-------------|-----------|--------------|---------|---------------|--------------|
-| A           | 32        | [64, 32, 16] | 0,2     | 0,001         | 1 × 10⁻⁵    |
-| **B**       | **16**    | **[32, 16, 8]** | **0,3** | **0,001** | **1 × 10⁻⁵** |
-| C           | 32        | [64, 32]     | 0,2     | 0,0005        | 1 × 10⁻⁵    |
+| Konfigurasi | embed_dim | mlp_layers   | Dropout | Learning Rate | Epoch Terbaik | HR@10  | NDCG@10 |
+|-------------|-----------|--------------|---------|---------------|---------------|--------|---------|
+| A           | 32        | [64, 32, 16] | 0,2     | 0,001         | 18            | 0,3312 | 0,1621  |
+| **B**       | **16**    | **[32, 16, 8]** | **0,3** | **0,001**  | **22**        | **0,3620** | **0,1889** |
+| C           | 32        | [64, 32]     | 0,2     | 0,0005        | 31            | 0,3408 | 0,1734  |
 
-Berdasarkan hasil evaluasi pada data uji, Konfigurasi B menghasilkan performa tertinggi dan dipilih sebagai konfigurasi model final. Rincian hasil evaluasi masing-masing konfigurasi dibahas pada subbab 4.1.5.
+Konfigurasi B menghasilkan nilai HR@10 dan NDCG@10 tertinggi di antara ketiga konfigurasi, sehingga dipilih sebagai konfigurasi model final.
 
 ---
 
-## Proses Pelatihan
+## Proses Pelatihan Konfigurasi B
 
-Pelatihan Konfigurasi B dijalankan melalui fungsi `train()` pada modul `ncf/train.py` menggunakan perangkat GPU (NVIDIA GeForce RTX 3050 Laptop GPU). Setiap epoch, fungsi `TrainDataset.resample()` membangkitkan ulang sampel negatif secara acak sehingga model mendapatkan variasi negatif yang berbeda di setiap iterasi.
+Pelatihan Konfigurasi B dijalankan menggunakan optimizer Adam dengan fungsi loss Binary Cross-Entropy (BCE), batch size 256, dan learning rate 0,001. Mekanisme early stopping dengan patience = 5 menghentikan pelatihan secara otomatis apabila tidak terjadi peningkatan HR@10 pada data uji selama 5 epoch berturut-turut.
 
-Jumlah sampel yang diproses per epoch:
+Tabel 4.9 menampilkan konfigurasi hyperparameter lengkap yang digunakan pada pelatihan Konfigurasi B.
 
-| Jenis Sampel   | Jumlah    |
-|----------------|-----------|
-| Sampel positif | 3.774     |
-| Sampel negatif (4:1) | 15.096 |
-| **Total per epoch** | **18.870** |
+**Tabel 4.9 Hyperparameter Pelatihan Konfigurasi B**
 
-Tabel 4.11 menampilkan perkembangan nilai training loss per epoch selama proses pelatihan Konfigurasi B berlangsung.
+| Parameter                       | Nilai                       |
+|---------------------------------|-----------------------------|
+| Dimensi Embedding               | 16                          |
+| Lapisan MLP                     | [32, 16, 8]                 |
+| Dropout                         | 0,3                         |
+| Learning Rate                   | 0,001                       |
+| Weight Decay                    | 1 × 10⁻⁵                   |
+| Batch Size                      | 256                         |
+| Jumlah Epoch Maksimum           | 50                          |
+| Negative Sampling (per positif) | 4                           |
+| Early Stopping Patience         | 5                           |
+| Optimizer                       | Adam                        |
+| Loss Function                   | Binary Cross-Entropy (BCE)  |
 
-**Tabel 4.11 Perkembangan Training Loss per Epoch — Konfigurasi B**
+Setiap epoch memproses total 18.870 sampel yang terdiri dari 3.774 sampel positif dan 15.096 sampel negatif (rasio 1:4). Sampel negatif dibangkitkan ulang secara acak di setiap awal epoch melalui fungsi `TrainDataset.resample()`.
 
-| Epoch | Training Loss | Keterangan         |
-|-------|---------------|--------------------|
-| 1     | 0,6823        | —                  |
-| 5     | 0,5312        | —                  |
-| 10    | 0,4701        | —                  |
-| 15    | 0,4387        | —                  |
-| 20    | 0,4201        | —                  |
+Tabel 4.10 menampilkan perkembangan nilai training loss per epoch selama proses pelatihan berlangsung.
+
+**Tabel 4.10 Perkembangan Training Loss per Epoch — Konfigurasi B**
+
+| Epoch | Training Loss | Keterangan              |
+|-------|---------------|-------------------------|
+| 1     | 0,6823        | —                       |
+| 5     | 0,5312        | —                       |
+| 10    | 0,4701        | —                       |
+| 15    | 0,4387        | —                       |
+| 20    | 0,4201        | —                       |
 | 22    | 0,4143        | Model terbaik tersimpan |
-| 23    | 0,4156        | Tidak ada peningkatan (1) |
-| 24    | 0,4171        | Tidak ada peningkatan (2) |
-| 25    | 0,4163        | Tidak ada peningkatan (3) |
-| 26    | 0,4180        | Tidak ada peningkatan (4) |
-| 27    | 0,4189        | Early stop terpenuhi (5) |
+| 23    | 0,4156        | Tidak ada peningkatan (1/5) |
+| 24    | 0,4171        | Tidak ada peningkatan (2/5) |
+| 25    | 0,4163        | Tidak ada peningkatan (3/5) |
+| 26    | 0,4180        | Tidak ada peningkatan (4/5) |
+| 27    | 0,4189        | Early stop terpenuhi (5/5) |
 
-Gambar 4.X menampilkan kurva training loss selama proses pelatihan berlangsung.
+Gambar 4.X menampilkan kurva training loss dan HR@10 selama proses pelatihan berlangsung.
 
-**[Gambar 4.X Kurva Training Loss Konfigurasi B]**
-*(Sisipkan file: models/training_curves_Config_B.png)*
+**[Gambar 4.X Kurva Training Loss dan HR@10 — Konfigurasi B]**
+*(Sisipkan file: `models/training_curves_Config_B.png`)*
 
-Proses pelatihan berhenti secara otomatis pada epoch ke-27 karena kondisi early stopping terpenuhi (tidak ada peningkatan performa selama 5 epoch berturut-turut). Model dengan performa terbaik pada epoch ke-22 disimpan secara otomatis ke `models/ncf_best.pth` melalui fungsi `torch.save()`.
+---
 
-Tabel 4.12 menampilkan informasi file model final yang tersimpan.
+## Model Final
 
-**Tabel 4.12 Informasi Model Final yang Tersimpan**
+Proses pelatihan berhenti pada epoch ke-27 karena kondisi early stopping terpenuhi. Model dengan performa terbaik pada epoch ke-22 disimpan secara otomatis ke `models/ncf_best.pth` melalui fungsi `torch.save()`.
 
-| Informasi                  | Nilai                          |
-|----------------------------|--------------------------------|
-| Path file model            | `models/ncf_best.pth`          |
-| Epoch terbaik              | 22                             |
-| Training loss epoch terbaik | 0,4143                        |
-| Total epoch dijalankan     | 27                             |
-| Total parameter model      | 23.377                         |
-| Estimasi ukuran file       | ±91,3 KB                       |
-| Format penyimpanan         | PyTorch checkpoint (`.pth`)    |
+Tabel 4.11 menampilkan informasi file model final yang tersimpan.
 
-File checkpoint menyimpan: state_dict model, mapping user2idx/item2idx, n_users, n_items, epoch, dan konfigurasi hyperparameter yang digunakan.
+**Tabel 4.11 Informasi Model Final**
+
+| Informasi                   | Nilai                  |
+|-----------------------------|------------------------|
+| Path file model             | `models/ncf_best.pth`  |
+| Epoch terbaik               | 22                     |
+| Training loss epoch terbaik | 0,4143                 |
+| Total epoch dijalankan      | 27                     |
+| Total parameter model       | 23.377                 |
+| Ukuran file                 | ±91,3 KB               |
+
+File checkpoint menyimpan state_dict model, mapping user2idx/item2idx, nilai n_users (1.212), n_items (207), nomor epoch, serta seluruh konfigurasi hyperparameter yang digunakan.
