@@ -2,91 +2,6 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/apiClient';
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-function stripVariant(name) {
-  return name
-    .replace(/\s*\/\s*(HOT LARGE|HOT REGULAR|COLD LARGE|COLD REGULAR|HOT|COLD|LARGE|REGULAR|SMALL|50K|25K|\d+\s*ML|\d+\s*GR)\s*$/i, '')
-    .trim();
-}
-
-function variantLabel(name) {
-  const m = name.match(/\/\s*(.+)$/);
-  return m ? m[1].trim() : null;
-}
-
-// Returns one representative item per base-name group, with _variants attached
-function groupMenus(menus) {
-  const map = new Map();
-  for (const m of menus) {
-    const key = `${m.category}::${stripVariant(m.name)}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(m);
-  }
-  return [...map.values()].map(variants => {
-    const rep = variants.find(v => /REGULAR/i.test(v.name)) || variants[0];
-    const minPrice = Math.min(...variants.map(v => v.price || 0));
-    return { ...rep, _base: stripVariant(rep.name), _variants: variants, _minPrice: minPrice };
-  });
-}
-
-// ── Variant picker modal ──────────────────────────────────────────────────────
-function VariantPicker({ item, onSelect, onClose }) {
-  return (
-    <div
-      className="modal-overlay"
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <div className="modal-box" style={{ maxWidth: 360 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <div>
-            <div style={{ fontSize: '.68rem', color: 'var(--green)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '.2rem' }}>
-              {item.category}
-            </div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--gray5)' }}>{item._base}</div>
-          </div>
-          <span style={{ fontSize: '2rem' }}>{item.icon}</span>
-        </div>
-
-        <div style={{ fontSize: '.78rem', fontWeight: 600, color: 'var(--gray4)', marginBottom: '.6rem' }}>
-          Pilih ukuran / varian:
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem', marginBottom: '1rem' }}>
-          {item._variants.map(v => {
-            const label = variantLabel(v.name) || v.name;
-            return (
-              <button
-                key={v.id}
-                onClick={() => onSelect(v)}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '.75rem 1rem', border: '1.5px solid var(--gray2)',
-                  borderRadius: 10, background: 'white', cursor: 'pointer',
-                  fontFamily: 'var(--font)', transition: 'all .12s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--green)'; e.currentTarget.style.background = 'var(--green-light)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--gray2)'; e.currentTarget.style.background = 'white'; }}
-              >
-                <span style={{ fontSize: '.85rem', fontWeight: 600, color: 'var(--gray5)' }}>{label}</span>
-                {v.price > 0 && (
-                  <span style={{ fontSize: '.82rem', fontWeight: 700, color: 'var(--green-dark)' }}>
-                    Rp {v.price.toLocaleString('id-ID')}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <button className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={onClose}>
-          Batal
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function OrderMenuPage({ menus, orders, setOrders }) {
   const { currentUser } = useAuth();
   const [category, setCategory]       = useState('Semua');
@@ -96,15 +11,12 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successItems, setSuccessItems] = useState([]);
   const [submitting, setSubmitting]   = useState(false);
-  const [variantPicker, setVariantPicker] = useState(null); // grouped item or null
 
-  const grouped    = groupMenus(menus);
-  const dynamicCats = ['Semua', ...new Set(grouped.map(m => m.category))];
+  const dynamicCats = ['Semua', ...new Set(menus.map(m => m.category))];
 
-  const filtered = grouped.filter(m =>
+  const filtered = menus.filter(m =>
     (category === 'Semua' || m.category === category) &&
-    (m._base.toLowerCase().includes(search.toLowerCase()) ||
-     m.name.toLowerCase().includes(search.toLowerCase()))
+    m.name.toLowerCase().includes(search.toLowerCase())
   );
 
   function addToCart(menu) {
@@ -113,19 +25,6 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
       if (exists) return prev.map(c => c.id === menu.id ? { ...c, qty: c.qty + 1 } : c);
       return [...prev, { ...menu, qty: 1 }];
     });
-  }
-
-  function handlePesan(item) {
-    if (item._variants.length > 1) {
-      setVariantPicker(item);
-    } else {
-      addToCart(item);
-    }
-  }
-
-  function handleVariantSelect(variant) {
-    addToCart(variant);
-    setVariantPicker(null);
   }
 
   function removeFromCart(menuId) {
@@ -194,14 +93,6 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
 
   return (
     <div style={{ position: 'relative' }}>
-      {variantPicker && (
-        <VariantPicker
-          item={variantPicker}
-          onSelect={handleVariantSelect}
-          onClose={() => setVariantPicker(null)}
-        />
-      )}
-
       <div style={{ display: 'flex', gap: '.6rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
         <div className="search-bar" style={{ flex: 1, maxWidth: 300 }}>
           <span className="search-icon">🔍</span>
@@ -237,48 +128,43 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
       ) : (
         <div className="menu-grid" style={{ marginBottom: '5rem' }}>
           {filtered.map(m => {
-            // Count total qty in cart for all variants of this group
-            const cartQty = m._variants.reduce((sum, v) => {
-              const c = cart.find(ci => ci.id === v.id);
-              return sum + (c ? c.qty : 0);
-            }, 0);
-
-            const hasVariants = m._variants.length > 1;
-            const minPrice    = m._minPrice;
-
+            const inCart = cart.find(c => c.id === m.id);
             return (
-              <div key={m._base + m.category} className="menu-card" style={{ position: 'relative' }}>
-                {cartQty > 0 && (
+              <div key={m.id} className="menu-card" style={{ position: 'relative' }}>
+                {inCart && (
                   <div style={{
                     position: 'absolute', top: 8, right: 8, zIndex: 1,
                     background: 'var(--green)', color: 'white',
                     width: 22, height: 22, borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: '.7rem', fontWeight: 800,
-                  }}>{cartQty}</div>
+                  }}>{inCart.qty}</div>
                 )}
                 <div className="menu-card-img">{m.icon}</div>
                 <div className="menu-card-body">
                   <div className="menu-card-cat">{m.category}</div>
-                  <div className="menu-card-name">{m._base}</div>
+                  <div className="menu-card-name">{m.name}</div>
                   <div className="menu-card-id">{m.code || m.id}</div>
-                  {hasVariants && (
-                    <div style={{ fontSize: '.68rem', color: 'var(--gray3)', marginTop: '.2rem' }}>
-                      {m._variants.length} pilihan ukuran
-                    </div>
-                  )}
-                  {minPrice > 0 && (
+                  {m.price > 0 && (
                     <div style={{ fontSize: '.78rem', color: 'var(--green-dark)', fontWeight: 700, marginBottom: '.6rem' }}>
-                      {hasVariants ? 'Mulai ' : ''}Rp {minPrice.toLocaleString('id-ID')}
+                      Rp {m.price.toLocaleString('id-ID')}
                     </div>
                   )}
-                  <button
-                    className="btn btn-primary"
-                    style={{ width: '100%', justifyContent: 'center', fontSize: '.76rem', padding: '.4rem' }}
-                    onClick={() => handlePesan(m)}
-                  >
-                    + Pesan
-                  </button>
+                  {inCart ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
+                      <button onClick={() => removeFromCart(m.id)} style={{ width: 28, height: 28, border: '1.5px solid var(--gray2)', borderRadius: 6, background: 'white', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--gray5)', lineHeight: 1 }}>−</button>
+                      <span style={{ flex: 1, textAlign: 'center', fontSize: '.85rem', fontWeight: 700, color: 'var(--green)' }}>{inCart.qty}</span>
+                      <button onClick={() => addToCart(m)} style={{ width: 28, height: 28, border: 'none', borderRadius: 6, background: 'var(--green)', fontSize: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'white', lineHeight: 1 }}>+</button>
+                    </div>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      style={{ width: '100%', justifyContent: 'center', fontSize: '.76rem', padding: '.4rem' }}
+                      onClick={() => addToCart(m)}
+                    >
+                      + Pesan
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -183,32 +183,17 @@ function MenuDetail({ menu, menus, onBack }) {
   );
 }
 
-// ── Group by base name (one card per REGULAR/LARGE family) ───────────────────
-function groupMenus(menus) {
-  const map = new Map();
-  for (const m of menus) {
-    const key = `${m.category}::${baseName(m.name)}`;
-    if (!map.has(key)) map.set(key, []);
-    map.get(key).push(m);
-  }
-  return [...map.values()].map(variants => {
-    const rep = variants.find(v => /REGULAR/i.test(v.name)) || variants[0];
-    return { ...rep, _base: baseName(rep.name), _variants: variants, _minPrice: Math.min(...variants.map(v => v.price || 0)) };
-  });
-}
-
 // ── Catalog list ──────────────────────────────────────────────────────────────
 export default function CatalogPage({ menus }) {
   const [search, setSearch]     = useState('');
   const [category, setCategory] = useState('');
   const [selected, setSelected] = useState(null);
 
-  const grouped    = groupMenus(menus);
-  const categories = ['', ...new Set(grouped.map(m => m.category))];
+  const categories = ['', ...new Set(menus.map(m => m.category))];
 
-  const filtered = grouped.filter(m =>
+  const filtered = menus.filter(m =>
     (!category || m.category === category) &&
-    (m._base.toLowerCase().includes(search.toLowerCase()) ||
+    (m.name.toLowerCase().includes(search.toLowerCase()) ||
      m.category.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -248,11 +233,11 @@ export default function CatalogPage({ menus }) {
       ) : (
         <div className="menu-grid">
           {filtered.map(m => (
-            <div key={m._base + m.category} className="menu-card" style={{ cursor: 'pointer' }} onClick={() => setSelected(m)}>
+            <div key={m.id} className="menu-card" style={{ cursor: 'pointer' }} onClick={() => setSelected(m)}>
               <div className="menu-card-img">{m.icon}</div>
               <div className="menu-card-body">
                 <div className="menu-card-cat">{m.category}</div>
-                <div className="menu-card-name">{m._base}</div>
+                <div className="menu-card-name">{m.name}</div>
                 <div className="menu-card-id">{m.code || m.id}</div>
                 {m.keterangan && (
                   <div style={{ fontSize: '.72rem', color: 'var(--gray3)', marginTop: '.3rem', lineHeight: 1.4,
@@ -260,14 +245,9 @@ export default function CatalogPage({ menus }) {
                     {m.keterangan}
                   </div>
                 )}
-                {m._variants.length > 1 && (
-                  <div style={{ fontSize: '.68rem', color: 'var(--gray3)', marginTop: '.25rem' }}>
-                    {m._variants.length} pilihan ukuran
-                  </div>
-                )}
-                {m._minPrice > 0 && (
+                {m.price > 0 && (
                   <div style={{ fontSize: '.75rem', color: 'var(--green-dark)', fontWeight: 700, marginTop: '.3rem' }}>
-                    {m._variants.length > 1 ? 'Mulai ' : ''}Rp {m._minPrice.toLocaleString('id-ID')}
+                    Rp {m.price.toLocaleString('id-ID')}
                   </div>
                 )}
               </div>
