@@ -2,14 +2,6 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/apiClient';
 
-const FOOD_DRINK_CATS = [
-  'Kopi & Espresso','Non-Kopi','Juice','Minuman',
-  'Croissant & Pastry','Pudding','Snack Ringan',
-  'Gorengan & Snack','Toast','Nasi Goreng','Nasi Lauk',
-  'Mie & Bihun','Pasta','Indomie','Chicken Steak',
-  'Salad','Ricebowl','Sayur','Ice Cream',
-];
-
 export default function OrderMenuPage({ menus, orders, setOrders }) {
   const { currentUser } = useAuth();
   const [category, setCategory] = useState('Semua');
@@ -20,7 +12,7 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
   const [successItems, setSuccessItems] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const orderableMenus = menus.filter(m => FOOD_DRINK_CATS.includes(m.category));
+  const orderableMenus = menus;
   const dynamicCats = ['Semua', ...new Set(orderableMenus.map(m => m.category))];
 
   const filtered = orderableMenus.filter(m =>
@@ -261,7 +253,7 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
           className="modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowCart(false)}
         >
-          <div className="modal-box" style={{ maxWidth: 440 }}>
+          <div className="modal-box" style={{ maxWidth: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.2rem' }}>
               <div className="modal-title" style={{ margin: 0 }}>🛒 Keranjang Pesanan</div>
               <button
