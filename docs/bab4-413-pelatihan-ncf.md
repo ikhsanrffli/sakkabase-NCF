@@ -1,14 +1,14 @@
 # 4.1.3 Hasil Pelatihan Model Neural Collaborative Filtering (NCF)
 
-Proses pelatihan model NCF dilakukan dalam dua tahap, yaitu pencarian konfigurasi hyperparameter terbaik melalui grid search dan pelatihan model final berdasarkan konfigurasi yang terpilih. Seluruh proses dijalankan pada perangkat lokal dengan GPU NVIDIA GeForce RTX 3050 Laptop GPU.
+Proses pelatihan model NCF dilakukan dalam dua tahap, yaitu pencarian konfigurasi hyperparameter terbaik melalui grid search dan pelatihan model final berdasarkan konfigurasi yang terpilih. Seluruh proses pelatihan dijalankan pada perangkat lokal dengan memanfaatkan GPU NVIDIA GeForce RTX 3050 Laptop GPU untuk mempercepat komputasi.
 
 ---
 
 ## Pencarian Konfigurasi Terbaik (Grid Search)
 
-Untuk menentukan kombinasi hyperparameter yang menghasilkan performa terbaik, dilakukan grid search terhadap tiga konfigurasi model yang berbeda. Ketiga konfigurasi dilatih menggunakan data latih dan data uji yang sama agar perbandingan antar konfigurasi berlangsung secara adil.
+Untuk menentukan kombinasi hyperparameter yang menghasilkan performa terbaik, dilakukan grid search terhadap tiga konfigurasi model yang berbeda. Ketiga konfigurasi memvariasikan dimensi embedding, jumlah lapisan MLP, nilai dropout, dan learning rate. Seluruh konfigurasi dilatih menggunakan data latih dan data uji yang sama agar perbandingan antar konfigurasi berlangsung secara adil.
 
-Tabel 4.8 menampilkan ketiga konfigurasi yang diuji beserta hasil evaluasinya.
+Tabel 4.8 menampilkan ketiga konfigurasi yang diuji beserta hasil evaluasinya pada data uji.
 
 **Tabel 4.8 Hasil Grid Search NCF**
 
@@ -18,13 +18,13 @@ Tabel 4.8 menampilkan ketiga konfigurasi yang diuji beserta hasil evaluasinya.
 | **B**       | **16**    | **[32, 16, 8]** | **0,3** | **0,001**     | **22**        | **0,3620** | **0,1889** |
 | C           | 32        | [64, 32]        | 0,2     | 0,0005        | 31            | 0,3408     | 0,1734     |
 
-Konfigurasi B menghasilkan nilai HR@10 dan NDCG@10 tertinggi di antara ketiga konfigurasi, sehingga dipilih sebagai konfigurasi model final yang akan digunakan pada tahap inferensi.
+Konfigurasi B menghasilkan nilai HR@10 dan NDCG@10 tertinggi di antara ketiga konfigurasi, sehingga dipilih sebagai konfigurasi model final yang digunakan pada tahap inferensi. Rincian perhitungan metrik evaluasi HR@10 dan NDCG@10 dibahas lebih lanjut pada subbab 4.1.5.
 
 ---
 
 ## Proses Pelatihan Konfigurasi B
 
-Pelatihan Konfigurasi B dilakukan menggunakan optimizer Adam dengan fungsi loss Binary Cross-Entropy (BCE). Mekanisme early stopping diterapkan dengan patience = 5, yaitu pelatihan dihentikan secara otomatis apabila tidak terjadi peningkatan performa pada data uji selama 5 epoch berturut-turut. Jumlah epoch maksimum ditetapkan sebesar 50 epoch.
+Pelatihan Konfigurasi B dilakukan menggunakan optimizer Adam dengan fungsi loss Binary Cross-Entropy (BCE), batch size 256, dan learning rate 0,001. Mekanisme early stopping dengan patience = 5 diterapkan untuk menghentikan pelatihan secara otomatis apabila tidak terjadi peningkatan performa pada data uji selama 5 epoch berturut-turut, dengan jumlah epoch maksimum ditetapkan sebesar 50 epoch.
 
 Tabel 4.9 menampilkan seluruh hyperparameter yang digunakan dalam pelatihan Konfigurasi B.
 
@@ -44,7 +44,7 @@ Tabel 4.9 menampilkan seluruh hyperparameter yang digunakan dalam pelatihan Konf
 | Optimizer                       | Adam                        |
 | Loss Function                   | Binary Cross-Entropy (BCE)  |
 
-Setiap epoch memproses total 18.870 sampel yang terdiri dari 3.774 sampel positif dan 15.096 sampel negatif dengan rasio 1:4. Sampel negatif dibangkitkan ulang secara acak di setiap awal epoch sehingga model tidak menghafal pola negatif yang sama secara berulang.
+Setiap epoch memproses total 18.870 sampel yang terdiri dari 3.774 sampel positif dan 15.096 sampel negatif dengan rasio 1:4. Sampel negatif dibangkitkan ulang secara acak di setiap awal epoch sehingga model mendapatkan variasi data negatif yang berbeda di setiap iterasi dan tidak menghafal pola negatif yang sama secara berulang.
 
 Tabel 4.10 menampilkan perkembangan nilai training loss di setiap epoch selama proses pelatihan berlangsung.
 
@@ -64,27 +64,28 @@ Tabel 4.10 menampilkan perkembangan nilai training loss di setiap epoch selama p
 | 26    | 0,4180        | Tidak ada peningkatan (4/5) |
 | 27    | 0,4189        | Early stop terpenuhi (5/5)  |
 
+Nilai training loss mengalami penurunan secara konsisten dari epoch ke-1 sebesar 0,6823 hingga mencapai nilai terbaik pada epoch ke-22 sebesar 0,4143. Setelah epoch ke-22, nilai loss tidak menunjukkan penurunan yang berarti selama 5 epoch berturut-turut sehingga pelatihan dihentikan secara otomatis pada epoch ke-27.
+
 Gambar 4.X menampilkan kurva training loss dan HR@10 selama proses pelatihan berlangsung.
 
 **[Gambar 4.X Kurva Training Loss dan HR@10 — Konfigurasi B]**
-*(Sisipkan file: `models/training_curves_Config_B.png`)*
-
-Nilai training loss mengalami penurunan secara konsisten dari epoch ke-1 (0,6823) hingga mencapai titik terbaik pada epoch ke-22 (0,4143). Setelah epoch ke-22, nilai loss tidak menunjukkan penurunan yang berarti sehingga kondisi early stopping terpenuhi pada epoch ke-27.
+*(Sisipkan file: training_curves_Config_B.png dari hasil pelatihan lokal)*
 
 ---
 
 ## Model Final
 
-Model dengan performa terbaik pada epoch ke-22 disimpan secara otomatis ke dalam file checkpoint. Tabel 4.11 menampilkan informasi lengkap model final yang tersimpan.
+Model dengan performa terbaik yang dicapai pada epoch ke-22 disimpan secara otomatis ke dalam file checkpoint `models/ncf_best.pth`. File tersebut menyimpan bobot seluruh lapisan model, pemetaan ID pengguna dan ID item ke indeks embedding, jumlah pengguna (1.212) dan jumlah item (207), nomor epoch terbaik, serta seluruh konfigurasi hyperparameter yang digunakan selama pelatihan.
+
+Tabel 4.11 menampilkan informasi lengkap model final yang tersimpan.
 
 **Tabel 4.11 Informasi Model Final**
 
 | Informasi                   | Nilai                  |
 |-----------------------------|------------------------|
+| Path file model             | models/ncf_best.pth    |
 | Epoch terbaik               | 22                     |
 | Training loss epoch terbaik | 0,4143                 |
 | Total epoch dijalankan      | 27                     |
 | Total parameter model       | 23.377                 |
 | Ukuran file                 | ±91,3 KB               |
-
-File checkpoint menyimpan bobot model, pemetaan ID pengguna dan item, serta seluruh konfigurasi hyperparameter yang digunakan selama pelatihan.
