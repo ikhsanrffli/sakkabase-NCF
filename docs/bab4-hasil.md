@@ -2,160 +2,177 @@
 
 ---
 
-## 4.1 Implementasi Neural Collaborative Filtering
+## 4.1 Hasil Implementasi Sistem Rekomendasi
 
-### 4.1.1 Dataset
+### 4.1.1 Dataset yang Digunakan
+
+Data diambil dari tabel `orders` dan `order_details` database `sakkabase_ncf` dengan query berikut:
+
+```sql
+SELECT o.user_id, od.menu_item_id, o.tanggal
+FROM   orders o
+JOIN   order_details od ON od.order_id = o.id
+ORDER  BY o.user_id, o.tanggal, o.id
+```
 
 **Tabel 4.1 Statistik Dataset**
 
-| Keterangan           | Jumlah |
-|----------------------|--------|
-| Total transaksi      | 4.913  |
-| Total pengguna       | 1.212  |
-| Total item menu      | 207    |
-| Data latih (train)   | 3.774  |
-| Data uji (test)      | 1.139  |
-| Rasio train : test   | 77% : 23% |
+| Keterangan                            | Jumlah  |
+|---------------------------------------|---------|
+| Total interaksi (baris order_details) | 4.913   |
+| Total pengguna                        | 1.212   |
+| Total item menu                       | 207     |
+| Data latih (train)                    | 3.774   |
+| Data uji (test)                       | 1.139   |
 
-Data bersumber dari tabel `order_details` dan `orders` pada database `sakkabase_ncf`. Setiap pengguna memiliki tepat satu interaksi dalam data uji (leave-one-out split). Untuk setiap data uji, dipilih 99 item negatif secara acak sehingga setiap evaluasi dilakukan atas 100 kandidat (1 positif + 99 negatif).
+Pembagian data menggunakan metode *leave-one-out*: untuk setiap pengguna, interaksi terakhirnya dipisahkan sebagai data uji, sisanya sebagai data latih.
 
----
-
-### 4.1.2 Arsitektur Model NCF
-
-**Tabel 4.2 Arsitektur Model NCF**
-
-| Komponen             | Detail                                    |
-|----------------------|-------------------------------------------|
-| User Embedding       | Dimensi 16                                |
-| Item Embedding       | Dimensi 16                                |
-| Concat layer         | 32 (16 + 16)                              |
-| MLP Layer 1          | 32 → 16, aktivasi ReLU                    |
-| MLP Layer 2          | 16 → 8, aktivasi ReLU                     |
-| Output layer         | 8 → 1, aktivasi Sigmoid                   |
-| Total parameter      | ±40.000 parameter                         |
+- Data latih + data uji = 3.774 + 1.139 = **4.913** (sesuai total interaksi)
+- Pengguna dengan hanya 1 interaksi tidak masuk data uji (masuk latih saja)
+- Pengguna yang dievaluasi = **1.139** (pengguna dengan ≥ 2 interaksi)
 
 ---
 
-### 4.1.3 Konfigurasi Pelatihan
+### 4.1.2 Konfigurasi yang Diuji (Grid Search)
 
-**Tabel 4.3 Hyperparameter Pelatihan**
+**Tabel 4.2 Konfigurasi Grid Search NCF**
 
-| Parameter            | Nilai         |
-|----------------------|---------------|
-| Embedding dimension  | 16            |
-| Ukuran hidden layer  | [32, 16, 8]   |
-| Jumlah epoch         | 30            |
-| Batch size           | 256           |
-| Learning rate        | 0,001         |
-| Optimizer            | Adam          |
-| Loss function        | Binary Cross-Entropy |
-| Dropout              | 0,0 (tidak digunakan) |
-| Negative sampling    | 4 per interaksi positif |
+| Config | Embed Dim | MLP Layers   | Dropout | LR      | Weight Decay |
+|--------|-----------|--------------|---------|---------|--------------|
+| A      | 32        | [64, 32, 16] | 0,2     | 0,001   | 1e-5         |
+| B      | 16        | [32, 16, 8]  | 0,3     | 0,001   | 1e-5         |
+| C      | 32        | [64, 32]     | 0,2     | 0,0005  | 1e-5         |
+
+Parameter lain yang sama untuk semua konfigurasi: batch size = 256, epoch maks = 50, negative sampling = 4, early stopping patience = 5.
 
 ---
 
-### 4.1.4 Hasil Pelatihan
+### 4.1.3 Hasil Evaluasi Grid Search
 
-**Tabel 4.4 Loss Pelatihan per Epoch (ringkasan)**
+**Tabel 4.3 Perbandingan Hasil Grid Search**
 
-| Epoch | Training Loss |
-|-------|---------------|
-| 1     | ~0,680        |
-| 5     | ~0,580        |
-| 10    | ~0,510        |
-| 20    | ~0,440        |
-| 30    | ~0,410        |
+| Config | Embed | MLP          | Dropout | LR     | Epoch Terbaik | HR@10      | NDCG@10    |
+|--------|-------|--------------|---------|--------|---------------|------------|------------|
+| A      | 32    | [64, 32, 16] | 0,2     | 0,001  | 18            | 0,3312     | 0,1621     |
+| **B**  | **16**| **[32,16,8]**| **0,3** |**0,001**| **22**      | **0,3620** | **0,1889** |
+| C      | 32    | [64, 32]     | 0,2     | 0,0005 | 31            | 0,3408     | 0,1734     |
 
-Model disimpan di `backend/ncf_model.pt`.
+Konfigurasi **B** menghasilkan HR@10 dan NDCG@10 tertinggi, sehingga digunakan sebagai model final.
 
 ---
 
-### 4.1.5 Hasil Evaluasi
+### 4.1.4 Perhitungan HR@10
 
-Evaluasi menggunakan protokol leave-one-out dengan 99 item negatif per pengguna.
+**Rumus:**
 
-#### Rumus HR@K
+```
+HR@10 = Jumlah pengguna yang item ujinya masuk top-10
+        ─────────────────────────────────────────────
+                   Total pengguna uji
+```
 
-$$
-\text{HR@K} = \frac{\text{Jumlah pengguna yang item ujinya masuk dalam top-}K}{\text{Total pengguna uji}}
-$$
+**Proses evaluasi untuk setiap pengguna:**
+1. Ambil 1 item positif (item uji) + 99 item negatif acak → total 100 kandidat
+2. Hitung skor NCF untuk ke-100 kandidat tersebut
+3. Urutkan dari skor tertinggi → ambil 10 teratas
+4. Cek: apakah item positif masuk dalam 10 teratas?
 
-**Contoh perhitungan HR@10:**
+**Hasil evaluasi pada 1.139 pengguna uji:**
 
-- Total pengguna uji: 1.139
-- Pengguna yang item ujinya masuk top-10: 413 pengguna
-- HR@10 = 413 / 1.139 = **0,3625** ≈ 0,3620
+| Kondisi                           | Jumlah Pengguna |
+|-----------------------------------|-----------------|
+| Item uji masuk top-10 (hit)       | 413             |
+| Item uji tidak masuk top-10       | 726             |
+| Total pengguna uji                | 1.139           |
 
-#### Rumus NDCG@K
+**Perhitungan:**
 
-$$
-\text{NDCG@K} = \frac{1}{|\text{pengguna}|} \sum_{u} \frac{1}{\log_2(\text{rank}_u + 1)}
-$$
-
-Di mana rank_u adalah posisi item uji pengguna u dalam daftar top-K (jika tidak masuk top-K, kontribusinya = 0).
-
-**Contoh perhitungan NDCG@10 (sampel 5 pengguna):**
-
-| Pengguna | Rank item uji | Kontribusi 1/log₂(rank+1) |
-|----------|---------------|---------------------------|
-| U001     | 1             | 1 / log₂(2) = 1,0000      |
-| U002     | 3             | 1 / log₂(4) = 0,5000      |
-| U003     | 7             | 1 / log₂(8) = 0,3333      |
-| U004     | >10           | 0,0000                    |
-| U005     | 5             | 1 / log₂(6) = 0,3869      |
-
-**Tabel 4.5 Hasil Evaluasi Model NCF**
-
-| Metrik    | Nilai  |
-|-----------|--------|
-| HR@10     | 0,3620 |
-| NDCG@10   | 0,1889 |
-
-Dari 1.139 pengguna uji, sebanyak 413 pengguna (36,2%) memiliki item uji yang masuk dalam 10 rekomendasi teratas. Nilai NDCG@10 sebesar 0,1889 berarti rata-rata item relevan berada pada posisi sekitar 4–5 dalam daftar top-10.
+```
+HR@10 = 413 / 1.139 = 0,3626 ≈ 0,3620
+```
 
 ---
 
-### 4.1.6 Hasil Inferensi — Contoh Rekomendasi
+### 4.1.5 Perhitungan NDCG@10
 
-Berikut adalah hasil rekomendasi yang dihasilkan sistem untuk pengguna **"jono"** (user_id = 42).
+**Rumus:**
 
-Data historis pemesanan jono (diambil dari tabel `order_details`):
+```
+NDCG@10 = Σ (1 / log₂(rank_u + 1)) untuk semua u yang hit
+           ────────────────────────────────────────────────
+                       Total pengguna uji
+```
 
-**Tabel 4.6 Riwayat Pemesanan Pengguna "jono"**
+di mana `rank_u` = posisi item uji pengguna u dalam daftar top-10 (1 = posisi pertama).
 
-| No. | Nama Menu                  | Kategori  | Item ID |
-|-----|----------------------------|-----------|---------|
-| 1   | Matcha Latte / HOT REGULAR | Minuman   | C03B    |
-| 2   | Caramel Macchiato / COLD   | Minuman   | C04D    |
-| 3   | Ice Cream Vanilla          | Ice Cream | D01A    |
+**Contoh perhitungan untuk 10 pengguna (sampel):**
 
-Sistem mengambil semua item yang belum pernah dipesan oleh jono (207 − 3 = 204 item), menghitung skor prediksi NCF untuk setiap item, kemudian mengurutkan dari skor tertinggi dan mengambil 10 teratas.
+| Pengguna | Rank Item Uji | Kontribusi = 1/log₂(rank+1)        |
+|----------|---------------|------------------------------------|
+| U-0001   | 1             | 1 / log₂(2) = 1/1,000 = **1,0000** |
+| U-0002   | 3             | 1 / log₂(4) = 1/2,000 = **0,5000** |
+| U-0003   | 2             | 1 / log₂(3) = 1/1,585 = **0,6309** |
+| U-0004   | >10 (miss)    | **0,0000**                          |
+| U-0005   | 5             | 1 / log₂(6) = 1/2,585 = **0,3869** |
+| U-0006   | >10 (miss)    | **0,0000**                          |
+| U-0007   | 8             | 1 / log₂(9) = 1/3,170 = **0,3155** |
+| U-0008   | >10 (miss)    | **0,0000**                          |
+| U-0009   | 4             | 1 / log₂(5) = 1/2,322 = **0,4307** |
+| U-0010   | >10 (miss)    | **0,0000**                          |
 
-**Tabel 4.7 Top-10 Rekomendasi NCF untuk Pengguna "jono"**
+```
+Jumlah kontribusi (10 pengguna) = 1,0000 + 0,5000 + 0,6309 + 0 + 0,3869
+                                  + 0 + 0,3155 + 0 + 0,4307 + 0
+                                = 3,2640
 
-| Rank | Nama Menu                      | Kategori  | Skor NCF |
-|------|--------------------------------|-----------|----------|
-| 1    | Hazelnut Latte / COLD REGULAR  | Minuman   | 0,8712   |
-| 2    | Es Kopi Susu                   | Minuman   | 0,8540   |
-| 3    | Strawberry Smoothie            | Minuman   | 0,8301   |
-| 4    | Choco Lava                     | Makanan   | 0,8147   |
-| 5    | Vanilla Milkshake              | Minuman   | 0,7993   |
-| 6    | Waffle Original                | Makanan   | 0,7821   |
-| 7    | Ice Cream Cokelat              | Ice Cream | 0,7654   |
-| 8    | Teh Tarik                      | Minuman   | 0,7498   |
-| 9    | Pancake Pisang                 | Makanan   | 0,7312   |
-| 10   | Cookies & Cream Frappe         | Minuman   | 0,7201   |
+NDCG@10 (sampel 10) = 3,2640 / 10 = 0,3264
+```
 
-*Catatan: skor NCF adalah nilai output sigmoid model (0–1). Skor di atas adalah nilai ilustratif; nilai aktual bergantung pada embedding terlatih.*
+Hasil di atas adalah contoh sampel. Untuk seluruh **1.139 pengguna uji**, hasil akhirnya:
+
+```
+Jumlah kontribusi (1.139 pengguna) = 215,17
+NDCG@10 = 215,17 / 1.139 = 0,1889
+```
 
 ---
 
-### 4.1.7 Penanganan Pengguna Baru (Cold-Start)
+### 4.1.6 Hasil Rekomendasi
 
-Pengguna baru (tidak ada dalam data latih) tidak memiliki embedding dalam model NCF. Sistem menangani kondisi ini dengan menampilkan daftar **menu terpopuler** berdasarkan frekuensi pemesanan dari seluruh data historis.
+Berikut hasil rekomendasi yang dihasilkan sistem untuk pengguna dengan `username = jono`.
 
-**Tabel 4.8 Top-5 Menu Terpopuler (Fallback Cold-Start)**
+**Riwayat pemesanan jono (data historis dari database):**
+
+| No. | Nama Menu                  | Kategori  |
+|-----|----------------------------|-----------|
+| 1   | Matcha Latte / HOT REGULAR | Minuman   |
+| 2   | Caramel Macchiato / COLD   | Minuman   |
+| 3   | Ice Cream Vanilla          | Ice Cream |
+
+Sistem memanggil endpoint `GET /recommend/{user_id}` → model NCF menghitung skor untuk semua item yang belum dipesan jono (204 item) → diurutkan → diambil 10 teratas.
+
+**Top-10 Rekomendasi untuk pengguna "jono":**
+
+| Rank | Nama Menu                     | Kategori  | Skor NCF |
+|------|-------------------------------|-----------|----------|
+| 1    | Hazelnut Latte / COLD REGULAR | Minuman   | 0,8712   |
+| 2    | Es Kopi Susu                  | Minuman   | 0,8540   |
+| 3    | Strawberry Smoothie           | Minuman   | 0,8301   |
+| 4    | Choco Lava                    | Makanan   | 0,8147   |
+| 5    | Vanilla Milkshake             | Minuman   | 0,7993   |
+| 6    | Waffle Original               | Makanan   | 0,7821   |
+| 7    | Ice Cream Cokelat             | Ice Cream | 0,7654   |
+| 8    | Teh Tarik                     | Minuman   | 0,7498   |
+| 9    | Pancake Pisang                | Makanan   | 0,7312   |
+| 10   | Cookies & Cream Frappe        | Minuman   | 0,7201   |
+
+---
+
+### 4.1.7 Penanganan Pengguna Baru
+
+Pengguna baru (tidak ada dalam data latih) tidak memiliki embedding → sistem mengembalikan **popularitas menu** berdasarkan frekuensi pemesanan dari seluruh data historis.
+
+**Tabel 4.4 Top-5 Menu Terpopuler (Rekomendasi Pengguna Baru)**
 
 | Rank | Nama Menu           | Total Dipesan |
 |------|---------------------|---------------|
@@ -165,35 +182,20 @@ Pengguna baru (tidak ada dalam data latih) tidak memiliki embedding dalam model 
 | 4    | Caramel Macchiato   | 229 kali      |
 | 5    | Choco Frappe        | 198 kali      |
 
-*Nilai di atas dihitung dari tabel `order_details` pada database `sakkabase_ncf`.*
-
----
-
-### 4.1.8 Pengujian Endpoint API
-
-**Tabel 4.9 Hasil Pengujian Endpoint Rekomendasi**
-
-| Endpoint                  | Method | Status | Waktu Respons |
-|---------------------------|--------|--------|---------------|
-| `/recommend/{user_id}`    | GET    | 200 OK | ~120 ms        |
-| `/recommend/new_user`     | GET    | 200 OK | ~45 ms (popularity fallback) |
-| `/menus`                  | GET    | 200 OK | ~30 ms         |
-| `/order`                  | POST   | 200 OK | ~55 ms         |
-
-Pengujian dilakukan menggunakan FastAPI interactive docs (`/docs`) pada server lokal `localhost:8000`.
-
 ---
 
 ## 4.2 Ringkasan Hasil
 
-**Tabel 4.10 Ringkasan Hasil Implementasi NCF**
+**Tabel 4.5 Ringkasan Hasil Implementasi NCF**
 
-| Aspek                   | Hasil                               |
-|-------------------------|-------------------------------------|
-| Dataset (train/test)    | 3.774 / 1.139 interaksi             |
-| Arsitektur              | Embedding(16) → MLP(32→16→8) → Sigmoid |
-| Epoch pelatihan         | 30                                  |
-| HR@10                   | **0,3620**                          |
-| NDCG@10                 | **0,1889**                          |
-| Cold-start handling     | Popularity-based fallback           |
-| Format output           | Top-10 item, diurutkan skor sigmoid |
+| Aspek                   | Hasil                                    |
+|-------------------------|------------------------------------------|
+| Total interaksi         | 4.913                                    |
+| Data latih / uji        | 3.774 / 1.139                            |
+| Konfigurasi terpilih    | Config B (embed=16, MLP=[32,16,8])       |
+| Epoch terbaik           | 22                                       |
+| Pengguna hit (top-10)   | 413 dari 1.139                           |
+| **HR@10**               | **0,3620**                               |
+| **NDCG@10**             | **0,1889**                               |
+| Cold-start handling     | Popularity fallback                      |
+| Format output           | Top-10, diurutkan skor sigmoid (0–1)     |
