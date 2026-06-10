@@ -267,7 +267,7 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
                   )}
                   <button
                     className="btn btn-primary"
-                    style={{ width: '100%', justifyContent: 'center', fontSize: '.76rem', padding: '.4rem' }}
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '.76rem', padding: '.4rem', marginTop: 'auto' }}
                     onClick={() => handlePesan(m)}
                   >
                     + Pesan
