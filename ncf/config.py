@@ -17,17 +17,16 @@ DB_CONFIG = {
 }
 
 # ── Arsitektur NCF ────────────────────────────────────────────────────────────
-# Config B — hasil grid search terbaik (HR@10=0.3620, NDCG@10=0.1889)
-# Dataset sparse (avg 3.1 interaksi/user) → model kapasitas kecil cukup
+# Config C — hasil grid search terbaik (HR@10=0.3670, NDCG@10=0.1965)
 # MLP_LAYERS[0] harus = EMBEDDING_DIM * 2 (dimensi setelah concat)
 
-EMBEDDING_DIM = 16
-MLP_LAYERS    = [32, 16, 8]
-DROPOUT       = 0.3
+EMBEDDING_DIM = 32
+MLP_LAYERS    = [64, 32]
+DROPOUT       = 0.2
 
 # ── Training ──────────────────────────────────────────────────────────────────
 
-LR            = 0.001
+LR            = 0.0005
 WEIGHT_DECAY  = 1e-5        # L2 regularisasi di Adam optimizer
 BATCH_SIZE    = 256
 NUM_EPOCHS    = 50          # early stopping biasanya berhenti lebih awal

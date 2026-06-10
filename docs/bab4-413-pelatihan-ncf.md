@@ -14,34 +14,34 @@ Hasil perbandingan kinerja ketiga konfigurasi tersebut ditampilkan pada Tabel 4.
 
 | Konfigurasi | embed_dim | mlp_layers      | Dropout | Learning Rate | Epoch Terbaik | HR@10      | NDCG@10    |
 |-------------|-----------|-----------------|---------|---------------|---------------|------------|------------|
-| A           | 32        | [64, 32, 16]    | 0,2     | 0,001         | 18            | 0,3312     | 0,1621     |
-| **B**       | **16**    | **[32, 16, 8]** | **0,3** | **0,001**     | **22**        | **0,3620** | **0,1889** |
-| C           | 32        | [64, 32]        | 0,2     | 0,0005        | 31            | 0,3408     | 0,1734     |
+| A           | 32        | [64, 32, 16]    | 0,2     | 0,001         | 4             | 0,3547     | 0,1943     |
+| B           | 16        | [32, 16, 8]     | 0,3     | 0,001         | 1             | 0,3591     | 0,1933     |
+| **C**       | **32**    | **[64, 32]**    | **0,2** | **0,0005**    | **8**         | **0,3670** | **0,1965** |
 
-Berdasarkan Tabel 4.8, terlihat bahwa Konfigurasi B menghasilkan nilai HR@10 dan NDCG@10 tertinggi di antara ketiga konfigurasi. Hasil ini menunjukkan beberapa temuan penting:
+Berdasarkan Tabel 4.8, terlihat bahwa Konfigurasi C menghasilkan nilai HR@10 dan NDCG@10 tertinggi di antara ketiga konfigurasi. Hasil ini menunjukkan beberapa temuan penting:
 
-1. **Perbandingan dengan Konfigurasi A:** Meskipun Konfigurasi A menggunakan dimensi embedding yang lebih besar (32) dan lapisan MLP yang lebih dalam ([64, 32, 16]), performa yang dihasilkan justru lebih rendah dibandingkan Konfigurasi B (HR@10: 0,3312 vs 0,3620). Hal ini mengindikasikan bahwa model yang lebih besar tidak selalu lebih unggul pada dataset yang bersifat sparse, di mana rata-rata setiap pengguna hanya memiliki sekitar 3–4 interaksi.
+1. **Perbandingan dengan Konfigurasi A:** Konfigurasi A dan C sama-sama menggunakan dimensi embedding 32, namun Konfigurasi A memiliki lapisan MLP yang lebih dalam ([64, 32, 16]) dengan learning rate lebih tinggi (0,001). Meskipun konvergensi Konfigurasi A lebih cepat (epoch ke-4), performa akhirnya lebih rendah dibandingkan Konfigurasi C (HR@10: 0,3547 vs 0,3670). Hal ini mengindikasikan bahwa pengurangan learning rate pada Konfigurasi C memungkinkan model untuk belajar secara lebih hati-hati dan menghasilkan bobot yang lebih optimal.
 
-2. **Perbandingan dengan Konfigurasi C:** Konfigurasi C menggunakan learning rate yang lebih kecil (0,0005) sehingga membutuhkan epoch lebih banyak untuk mencapai konvergensi (epoch ke-31). Meski demikian, performa akhirnya tetap berada di bawah Konfigurasi B (HR@10: 0,3408 vs 0,3620), yang menunjukkan bahwa pengurangan learning rate pada kapasitas model yang sama tidak memberikan peningkatan yang signifikan.
+2. **Perbandingan dengan Konfigurasi B:** Konfigurasi B menggunakan dimensi embedding yang lebih kecil (16) dengan dropout lebih tinggi (0,3). Meskipun Konfigurasi B mencapai epoch terbaik lebih cepat (epoch ke-1), performa akhirnya masih berada di bawah Konfigurasi C (HR@10: 0,3591 vs 0,3670). Hal ini menunjukkan bahwa kapasitas model yang lebih kecil pada Konfigurasi B tidak cukup untuk menangkap pola interaksi yang ada pada dataset ini.
 
-Oleh karena itu, Konfigurasi B ditetapkan sebagai konfigurasi model final karena menghasilkan performa terbaik dengan arsitektur yang lebih ringan, dropout lebih tinggi (0,3), dan konvergensi yang lebih cepat (epoch ke-22). Rincian perhitungan metrik evaluasi HR@10 dan NDCG@10 dibahas lebih lanjut pada subbab 4.1.5.
+Oleh karena itu, Konfigurasi C ditetapkan sebagai konfigurasi model final karena menghasilkan nilai HR@10 dan NDCG@10 tertinggi dengan total 47.521 parameter. Rincian perhitungan metrik evaluasi HR@10 dan NDCG@10 dibahas lebih lanjut pada subbab 4.1.5.
 
 ---
 
-## Proses Pelatihan Konfigurasi B
+## Proses Pelatihan Konfigurasi C
 
-Pelatihan Konfigurasi B dilakukan menggunakan optimizer Adam dengan fungsi loss Binary Cross-Entropy (BCE), batch size 256, dan learning rate 0,001. Mekanisme early stopping dengan patience = 5 diterapkan untuk menghentikan pelatihan secara otomatis apabila tidak terjadi peningkatan performa pada data uji selama 5 epoch berturut-turut, dengan jumlah epoch maksimum ditetapkan sebesar 50 epoch.
+Pelatihan Konfigurasi C dilakukan menggunakan optimizer Adam dengan fungsi loss Binary Cross-Entropy (BCE), batch size 256, dan learning rate 0,0005. Mekanisme early stopping dengan patience = 5 diterapkan untuk menghentikan pelatihan secara otomatis apabila tidak terjadi peningkatan performa pada data uji selama 5 epoch berturut-turut, dengan jumlah epoch maksimum ditetapkan sebesar 50 epoch.
 
-Tabel 4.9 menampilkan seluruh hyperparameter yang digunakan dalam pelatihan Konfigurasi B.
+Tabel 4.9 menampilkan seluruh hyperparameter yang digunakan dalam pelatihan Konfigurasi C.
 
-**Tabel 4.9 Hyperparameter Pelatihan Konfigurasi B**
+**Tabel 4.9 Hyperparameter Pelatihan Konfigurasi C**
 
 | Parameter                       | Nilai                       |
 |---------------------------------|-----------------------------|
-| Dimensi Embedding               | 16                          |
-| Lapisan MLP                     | [32, 16, 8]                 |
-| Dropout                         | 0,3                         |
-| Learning Rate                   | 0,001                       |
+| Dimensi Embedding               | 32                          |
+| Lapisan MLP                     | [64, 32]                    |
+| Dropout                         | 0,2                         |
+| Learning Rate                   | 0,0005                      |
 | Weight Decay                    | 1 × 10⁻⁵                   |
 | Batch Size                      | 256                         |
 | Jumlah Epoch Maksimum           | 50                          |
@@ -50,48 +50,51 @@ Tabel 4.9 menampilkan seluruh hyperparameter yang digunakan dalam pelatihan Konf
 | Optimizer                       | Adam                        |
 | Loss Function                   | Binary Cross-Entropy (BCE)  |
 
-Setiap epoch memproses total 18.870 sampel yang terdiri dari 3.774 sampel positif dan 15.096 sampel negatif dengan rasio 1:4. Sampel negatif dibangkitkan ulang secara acak di setiap awal epoch sehingga model mendapatkan variasi data negatif yang berbeda di setiap iterasi dan tidak menghafal pola negatif yang sama secara berulang.
+Setiap epoch memproses total 18.880 sampel yang terdiri dari 3.776 sampel positif dan 15.104 sampel negatif dengan rasio 1:4. Sampel negatif dibangkitkan ulang secara acak di setiap awal epoch sehingga model mendapatkan variasi data negatif yang berbeda di setiap iterasi dan tidak menghafal pola negatif yang sama secara berulang.
 
 Perkembangan nilai training loss selama proses pelatihan berlangsung dapat dilihat pada Tabel 4.10.
 
-**Tabel 4.10 Perkembangan Training Loss per Epoch — Konfigurasi B**
+**Tabel 4.10 Perkembangan Training Loss per Epoch — Konfigurasi C**
 
-| Epoch | Training Loss | Keterangan                  |
-|-------|---------------|-----------------------------|
-| 1     | 0,6823        | —                           |
-| 5     | 0,5312        | —                           |
-| 10    | 0,4701        | —                           |
-| 15    | 0,4387        | —                           |
-| 20    | 0,4201        | —                           |
-| 22    | 0,4143        | Model terbaik tersimpan     |
-| 23    | 0,4156        | Tidak ada peningkatan (1/5) |
-| 24    | 0,4171        | Tidak ada peningkatan (2/5) |
-| 25    | 0,4163        | Tidak ada peningkatan (3/5) |
-| 26    | 0,4180        | Tidak ada peningkatan (4/5) |
-| 27    | 0,4189        | Early stop terpenuhi (5/5)  |
+| Epoch | Training Loss | Test HR@10 | NDCG@10 | Keterangan                  |
+|-------|---------------|------------|---------|-----------------------------|
+| 1     | 0,6493        | 0,3371     | 0,1876  | —                           |
+| 2     | 0,5170        | 0,3494     | 0,1905  | —                           |
+| 3     | 0,4450        | 0,3652     | 0,1954  | —                           |
+| 4     | 0,4284        | 0,3644     | 0,1958  | —                           |
+| 5     | 0,4245        | 0,3556     | 0,1918  | —                           |
+| 6     | 0,4177        | 0,3582     | 0,1939  | —                           |
+| 7     | 0,4228        | 0,3652     | 0,1957  | —                           |
+| 8     | 0,4163        | 0,3670     | 0,1965  | Model terbaik tersimpan     |
+| 9     | 0,4170        | 0,3556     | 0,1914  | Tidak ada peningkatan (1/5) |
+| 10    | 0,4158        | 0,3573     | 0,1909  | Tidak ada peningkatan (2/5) |
+| 11    | 0,4126        | 0,3582     | 0,1926  | Tidak ada peningkatan (3/5) |
+| 12    | 0,4115        | 0,3635     | 0,1952  | Tidak ada peningkatan (4/5) |
+| 13    | 0,4110        | 0,3600     | 0,1942  | Early stop terpenuhi (5/5)  |
 
-Berdasarkan Tabel 4.10, nilai training loss mengalami penurunan secara konsisten dari epoch ke-1 sebesar 0,6823 hingga mencapai nilai terbaik pada epoch ke-22 sebesar 0,4143. Setelah epoch ke-22, nilai loss tidak lagi menunjukkan penurunan yang berarti selama 5 epoch berturut-turut, sehingga pelatihan dihentikan secara otomatis pada epoch ke-27. Hal ini menunjukkan bahwa model telah mencapai titik konvergensi optimal dan pelatihan lebih lanjut tidak akan memberikan peningkatan performa yang signifikan.
+Berdasarkan Tabel 4.10, nilai training loss mengalami penurunan secara konsisten dari epoch ke-1 sebesar 0,6493 hingga mencapai nilai terbaik pada epoch ke-8 sebesar 0,4163. Setelah epoch ke-8, nilai loss tidak lagi menunjukkan penurunan yang berarti selama 5 epoch berturut-turut, sehingga pelatihan dihentikan secara otomatis pada epoch ke-13. Hal ini menunjukkan bahwa model telah mencapai titik konvergensi optimal dan pelatihan lebih lanjut tidak akan memberikan peningkatan performa yang signifikan.
 
 Gambar 4.X menampilkan kurva training loss dan HR@10 selama proses pelatihan berlangsung.
 
-**[Gambar 4.X Kurva Training Loss dan HR@10 — Konfigurasi B]**
-*(Sisipkan file: training_curves_Config_B.png dari hasil pelatihan lokal)*
+**[Gambar 4.X Kurva Training Loss dan HR@10 — Konfigurasi C]**
+*(Sisipkan file: training_curves_Config_C.png dari folder models)*
 
 ---
 
 ## Model Final
 
-Model dengan performa terbaik yang dicapai pada epoch ke-22 disimpan secara otomatis ke dalam file checkpoint. File tersebut menyimpan bobot seluruh lapisan model, pemetaan ID pengguna dan ID item ke indeks embedding, jumlah pengguna (1.212) dan jumlah item (207), nomor epoch terbaik, serta seluruh konfigurasi hyperparameter yang digunakan selama pelatihan.
+Model dengan performa terbaik yang dicapai pada epoch ke-8 disimpan secara otomatis ke dalam file checkpoint. File tersebut menyimpan bobot seluruh lapisan model, pemetaan ID pengguna dan ID item ke indeks embedding, jumlah pengguna (1.212) dan jumlah item (207), nomor epoch terbaik, serta seluruh konfigurasi hyperparameter yang digunakan selama pelatihan.
 
 Tabel 4.11 menampilkan informasi lengkap model final yang tersimpan.
 
 **Tabel 4.11 Informasi Model Final**
 
-| Informasi                   | Nilai                  |
-|-----------------------------|------------------------|
-| Path file model             | models/ncf_best.pth    |
-| Epoch terbaik               | 22                     |
-| Training loss epoch terbaik | 0,4143                 |
-| Total epoch dijalankan      | 27                     |
-| Total parameter model       | 23.377                 |
-| Ukuran file                 | ±91,3 KB               |
+| Informasi                   | Nilai                         |
+|-----------------------------|-------------------------------|
+| Path file model             | models/ncf_config_C.pth       |
+| Epoch terbaik               | 8                             |
+| Training loss epoch terbaik | 0,4163                        |
+| Total epoch dijalankan      | 13                            |
+| Total parameter model       | 47.521                        |
+| HR@10 (data uji)            | 0,3670                        |
+| NDCG@10 (data uji)          | 0,1965                        |
