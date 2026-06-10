@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { SearchBar, EmptyState } from '../components/UI';
 
-// Strip trailing size/variant suffix to get the "base name" for grouping
 function baseName(name) {
   return name
     .replace(/\s*\/\s*(HOT LARGE|HOT REGULAR|COLD LARGE|COLD REGULAR|HOT|COLD|LARGE|REGULAR|SMALL|50K|25K|\d+\s*ML|\d+\s*GR)\s*$/i, '')
@@ -15,15 +14,18 @@ function variantLabel(name) {
 
 // ── Detail view ───────────────────────────────────────────────────────────────
 function MenuDetail({ menu, menus, onBack }) {
-  const base   = baseName(menu.name);
+  const base     = baseName(menu.name);
   const variants = menus.filter(m => m.category === menu.category && baseName(m.name) === base);
-  const related  = menus.filter(m => m.category === menu.category && m.id !== menu.id && baseName(m.name) !== base).slice(0, 6);
-
+  const related  = menus
+    .filter(m => m.category === menu.category && m.id !== menu.id && baseName(m.name) !== base)
+    .slice(0, 6);
   const hasVariants = variants.length > 1;
+
+  const divider = <div style={{ borderTop: '1px solid var(--gray2)', margin: '1.25rem 0' }} />;
 
   return (
     <div>
-      {/* Back button */}
+      {/* Back */}
       <button
         onClick={onBack}
         style={{
@@ -36,102 +38,136 @@ function MenuDetail({ menu, menus, onBack }) {
         ← Kembali ke Lihat Menu
       </button>
 
-      {/* Detail card */}
-      <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray2)', overflow: 'hidden', marginBottom: '1.5rem' }}>
+      {/* ── Main detail card ── */}
+      <div style={{
+        background: 'white', borderRadius: 16, border: '1px solid var(--gray2)',
+        padding: '1.75rem 2rem', marginBottom: '1.2rem',
+      }}>
 
-        {/* Hero icon */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f6faf7 0%, #edf7f0 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '2rem 0', fontSize: '5rem',
-        }}>
-          {menu.icon}
+        {/* Header: text left, icon right */}
+        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--green)', letterSpacing: '.05em', marginBottom: '.35rem' }}>
+              {menu.category.toUpperCase()}
+              <span style={{ color: 'var(--gray3)', fontWeight: 400 }}> • {menu.id}</span>
+            </div>
+            <h2 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--gray5)', margin: '0 0 .6rem', lineHeight: 1.2 }}>
+              {menu.name}
+            </h2>
+            <p style={{ fontSize: '.83rem', color: 'var(--gray4)', margin: 0, lineHeight: 1.6 }}>
+              {menu.category} — kode item <span style={{ fontFamily: 'monospace', color: 'var(--gray5)' }}>{menu.id}</span>
+            </p>
+          </div>
+          <div style={{
+            fontSize: '4.5rem', lineHeight: 1,
+            background: 'linear-gradient(135deg, #f6faf7, #edf7f0)',
+            borderRadius: 16, padding: '1rem 1.2rem',
+            flexShrink: 0,
+          }}>
+            {menu.icon}
+          </div>
         </div>
 
-        <div style={{ padding: '1.5rem' }}>
-          {/* Category + code */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', marginBottom: '.5rem' }}>
-            <span style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
-              {menu.category}
-            </span>
-            <span style={{ color: 'var(--gray3)', fontSize: '.72rem' }}>•</span>
-            <span style={{ fontSize: '.72rem', color: 'var(--gray3)', fontFamily: 'monospace' }}>{menu.code}</span>
-          </div>
+        {divider}
 
-          {/* Name */}
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--gray5)', margin: '0 0 1.2rem', lineHeight: 1.25 }}>
-            {menu.name}
-          </h2>
-
-          {/* Price + (no serving time in DB) */}
-          <div style={{ display: 'grid', gridTemplateColumns: menu.price > 0 ? '1fr 1fr' : '1fr', gap: '.75rem', marginBottom: '1.2rem' }}>
-            {menu.price > 0 && (
-              <div style={{ background: 'var(--gray1)', borderRadius: 10, padding: '.75rem 1rem' }}>
-                <div style={{ fontSize: '.7rem', color: 'var(--gray3)', marginBottom: '.2rem' }}>Harga satuan</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--green-dark)' }}>
-                  Rp {menu.price.toLocaleString('id-ID')}
-                </div>
-              </div>
-            )}
-            <div style={{ background: 'var(--gray1)', borderRadius: 10, padding: '.75rem 1rem' }}>
-              <div style={{ fontSize: '.7rem', color: 'var(--gray3)', marginBottom: '.2rem' }}>Kode item</div>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--gray5)', fontFamily: 'monospace' }}>{menu.id}</div>
+        {/* Harga satuan + Kode */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '.75rem', marginBottom: 0 }}>
+          <div>
+            <div style={{ fontSize: '.7rem', color: 'var(--gray3)', marginBottom: '.3rem' }}>Harga satuan</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--gray5)' }}>
+              {menu.price > 0 ? `Rp ${menu.price.toLocaleString('id-ID')}` : '—'}
             </div>
           </div>
+          <div>
+            <div style={{ fontSize: '.7rem', color: 'var(--gray3)', marginBottom: '.3rem' }}>Kategori</div>
+            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--gray5)' }}>{menu.category}</div>
+          </div>
+        </div>
 
-          {/* Size / variant options */}
-          {hasVariants && (
-            <div style={{ marginBottom: '1.2rem' }}>
-              <div style={{ fontSize: '.78rem', fontWeight: 600, color: 'var(--gray4)', marginBottom: '.55rem' }}>Pilihan varian</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.5rem' }}>
-                {variants.map(v => {
-                  const label   = variantLabel(v.name) || v.name;
-                  const isActive = v.id === menu.id;
-                  return (
-                    <div
-                      key={v.id}
-                      onClick={() => onBack(v)}
-                      style={{
-                        padding: '.45rem 1rem',
-                        border: isActive ? '2px solid var(--green)' : '1.5px solid var(--gray2)',
-                        borderRadius: 10,
-                        background: isActive ? 'var(--green-light)' : 'white',
-                        color: isActive ? 'var(--green-dark)' : 'var(--gray4)',
-                        fontSize: '.78rem', fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div>{label}</div>
-                      {v.price > 0 && (
-                        <div style={{ fontSize: '.7rem', color: isActive ? 'var(--green)' : 'var(--gray3)', marginTop: 2 }}>
-                          Rp {v.price.toLocaleString('id-ID')}
-                        </div>
-                      )}
+        {/* Size / variant options */}
+        {hasVariants && (
+          <>
+            {divider}
+            <div style={{ fontSize: '.83rem', fontWeight: 700, color: 'var(--gray5)', marginBottom: '.75rem' }}>
+              Pilihan ukuran
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(variants.length, 4)}, 1fr)`, gap: '.6rem' }}>
+              {variants.map(v => {
+                const label    = variantLabel(v.name) || v.name;
+                const isActive = v.id === menu.id;
+                return (
+                  <div
+                    key={v.id}
+                    onClick={() => onBack(v)}
+                    style={{
+                      background: isActive ? 'var(--green-light)' : 'var(--gray1)',
+                      border: isActive ? '1.5px solid var(--green)' : '1.5px solid transparent',
+                      borderRadius: 12, padding: '1rem 1.1rem',
+                      cursor: 'pointer', transition: 'all .15s',
+                    }}
+                  >
+                    <div style={{ fontSize: '.78rem', fontWeight: 700, color: isActive ? 'var(--green-dark)' : 'var(--gray4)', marginBottom: '.3rem' }}>
+                      {label}
                     </div>
-                  );
-                })}
-              </div>
+                    {v.price > 0 && (
+                      <div style={{ fontSize: '.9rem', fontWeight: 700, color: isActive ? 'var(--green)' : 'var(--gray5)' }}>
+                        Rp {v.price.toLocaleString('id-ID')}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
 
-      {/* Related menus */}
+      {/* ── Menu Lainnya ── */}
       {related.length > 0 && (
-        <>
-          <div style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--gray3)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: '.75rem' }}>
-            Menu Lainnya
+        <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--gray2)', padding: '1.5rem 2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '.6rem', marginBottom: '1.1rem' }}>
+            <span style={{ fontSize: '.72rem', fontWeight: 800, color: 'var(--gray3)', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+              Menu Lainnya
+            </span>
+            <span style={{
+              background: '#e74c3c', color: 'white', borderRadius: 99,
+              width: 20, height: 20, fontSize: '.65rem', fontWeight: 800,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {related.length}
+            </span>
           </div>
-          <div className="menu-grid">
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '.75rem' }}>
             {related.map(m => (
-              <div key={m.id} className="menu-card" style={{ cursor: 'pointer' }} onClick={() => onBack(m)}>
-                <div className="menu-card-img">{m.icon}</div>
-                <div className="menu-card-body">
-                  <div className="menu-card-cat">{m.category}</div>
-                  <div className="menu-card-name">{m.name}</div>
-                  <div className="menu-card-id">{m.code || m.id}</div>
+              <div
+                key={m.id}
+                onClick={() => onBack(m)}
+                style={{
+                  cursor: 'pointer', borderRadius: 12,
+                  border: '1px solid var(--gray2)', overflow: 'hidden',
+                  transition: 'box-shadow .15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,.08)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
+              >
+                <div style={{
+                  background: 'linear-gradient(135deg, #f6faf7, #edf7f0)',
+                  fontSize: '2.5rem', textAlign: 'center',
+                  padding: '.9rem 0',
+                }}>
+                  {m.icon}
+                </div>
+                <div style={{ padding: '.75rem' }}>
+                  <div style={{ fontSize: '.62rem', fontWeight: 700, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: '.25rem' }}>
+                    {m.category}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '.4rem' }}>
+                    <div style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--gray5)', lineHeight: 1.3 }}>{m.name}</div>
+                    <div style={{ fontSize: '.65rem', color: 'var(--gray3)', fontFamily: 'monospace', flexShrink: 0 }}>{m.code}</div>
+                  </div>
                   {m.price > 0 && (
-                    <div style={{ fontSize: '.75rem', color: 'var(--green-dark)', fontWeight: 700, marginTop: '.3rem' }}>
+                    <div style={{ fontSize: '.72rem', fontWeight: 700, color: 'var(--green-dark)', marginTop: '.35rem' }}>
                       Rp {m.price.toLocaleString('id-ID')}
                     </div>
                   )}
@@ -139,7 +175,7 @@ function MenuDetail({ menu, menus, onBack }) {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
@@ -147,9 +183,9 @@ function MenuDetail({ menu, menus, onBack }) {
 
 // ── Catalog list ──────────────────────────────────────────────────────────────
 export default function CatalogPage({ menus }) {
-  const [search, setSearch]       = useState('');
-  const [category, setCategory]   = useState('');
-  const [selected, setSelected]   = useState(null);
+  const [search, setSearch]     = useState('');
+  const [category, setCategory] = useState('');
+  const [selected, setSelected] = useState(null);
 
   const categories = ['', ...new Set(menus.map(m => m.category))];
 
@@ -159,7 +195,6 @@ export default function CatalogPage({ menus }) {
      m.category.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // onBack(menu?) — if called with a menu object, open that menu's detail instead
   function handleBack(target) {
     if (target && typeof target === 'object' && target.id) {
       setSelected(target);
