@@ -54,9 +54,11 @@ function MenuDetail({ menu, menus, onBack }) {
             <h2 style={{ fontSize: '1.55rem', fontWeight: 800, color: 'var(--gray5)', margin: '0 0 .6rem', lineHeight: 1.2 }}>
               {menu.name}
             </h2>
-            <p style={{ fontSize: '.83rem', color: 'var(--gray4)', margin: 0, lineHeight: 1.6 }}>
-              {menu.category} — kode item <span style={{ fontFamily: 'monospace', color: 'var(--gray5)' }}>{menu.id}</span>
-            </p>
+            {menu.keterangan && (
+              <p style={{ fontSize: '.83rem', color: 'var(--gray4)', margin: 0, lineHeight: 1.6 }}>
+                {menu.keterangan}
+              </p>
+            )}
           </div>
           <div style={{
             fontSize: '4.5rem', lineHeight: 1,
@@ -237,6 +239,12 @@ export default function CatalogPage({ menus }) {
                 <div className="menu-card-cat">{m.category}</div>
                 <div className="menu-card-name">{m.name}</div>
                 <div className="menu-card-id">{m.code || m.id}</div>
+                {m.keterangan && (
+                  <div style={{ fontSize: '.72rem', color: 'var(--gray3)', marginTop: '.3rem', lineHeight: 1.4,
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {m.keterangan}
+                  </div>
+                )}
                 {m.price > 0 && (
                   <div style={{ fontSize: '.75rem', color: 'var(--green-dark)', fontWeight: 700, marginTop: '.3rem' }}>
                     Rp {m.price.toLocaleString('id-ID')}

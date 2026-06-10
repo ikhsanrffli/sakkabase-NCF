@@ -44,6 +44,7 @@ function adaptMenu(m) {
     category: m.kategori,
     price: m.price || 0,
     icon: CATEGORY_ICONS[m.kategori] || '🍽️',
+    keterangan: m.keterangan || null,
   };
 }
 

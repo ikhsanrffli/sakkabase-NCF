@@ -36,6 +36,7 @@ class MenuItem(Base):
     nama_menu  = Column(String(150),  nullable=False)
     kategori   = Column(String(100),  nullable=False)
     price      = Column(Integer,      nullable=False, default=0)
+    keterangan = Column(Text,         nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 

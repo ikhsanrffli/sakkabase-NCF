@@ -60,11 +60,12 @@ class UserListResponse(BaseModel):
 # ── MenuItem ──────────────────────────────────────────────────────────────────
 
 class MenuItemResponse(BaseModel):
-    id:        int
-    item_id:   str
-    nama_menu: str
-    kategori:  str
-    price:     int
+    id:         int
+    item_id:    str
+    nama_menu:  str
+    kategori:   str
+    price:      int
+    keterangan: Optional[str] = None
 
     model_config = {"from_attributes": True}
 
