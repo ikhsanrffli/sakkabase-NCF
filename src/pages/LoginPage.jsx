@@ -3,16 +3,23 @@ import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage({ onRegister }) {
   const { login } = useAuth();
-  const [role, setRole] = useState('admin');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin(e) {
+  async function handleLogin(e) {
     e.preventDefault();
     setError('');
-    const result = login(username.trim(), password.trim(), role);
-    if (!result.success) setError(result.message);
+    if (!username.trim() || !password.trim()) { setError('Username dan password wajib diisi.'); return; }
+    setLoading(true);
+    try {
+      await login(username.trim(), password.trim());
+    } catch (err) {
+      setError(err.message || 'Login gagal, periksa username dan password.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -29,21 +36,6 @@ export default function LoginPage({ onRegister }) {
         <h2 className="auth-title">Selamat Datang</h2>
         <p className="auth-sub">Sistem Rekomendasi Menu Neural Collaborative Filtering</p>
 
-        <div className="role-tabs">
-          <button
-            className={`role-tab ${role === 'admin' ? 'active' : ''}`}
-            onClick={() => setRole('admin')}
-          >
-            👤 Admin
-          </button>
-          <button
-            className={`role-tab ${role === 'user' ? 'active' : ''}`}
-            onClick={() => setRole('user')}
-          >
-            🙋 User
-          </button>
-        </div>
-
         <form onSubmit={handleLogin}>
           <div className="form-group">
             <label>Username</label>
@@ -54,6 +46,7 @@ export default function LoginPage({ onRegister }) {
               value={username}
               onChange={e => setUsername(e.target.value)}
               autoComplete="username"
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -65,6 +58,7 @@ export default function LoginPage({ onRegister }) {
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoComplete="current-password"
+              disabled={loading}
             />
           </div>
 
@@ -78,16 +72,17 @@ export default function LoginPage({ onRegister }) {
             </div>
           )}
 
-          <button type="submit" className="btn btn-login-main btn-lg">Masuk</button>
+          <button type="submit" className="btn btn-login-main btn-lg" disabled={loading}>
+            {loading ? 'Memuat...' : 'Masuk'}
+          </button>
         </form>
 
         <p className="auth-hint">
           Belum punya akun?{' '}
-          <button onClick={onRegister}>Daftar di sini</button>
+          <button onClick={onRegister} disabled={loading}>Daftar di sini</button>
         </p>
         <p className="auth-footer-hint">
-          Admin: <strong>admin</strong> / <strong>admin123</strong> &nbsp;|&nbsp;
-          User: <strong>user1</strong> / <strong>user123</strong>
+          Admin: <strong>admin</strong> / <strong>admin123</strong>
         </p>
       </div>
     </div>

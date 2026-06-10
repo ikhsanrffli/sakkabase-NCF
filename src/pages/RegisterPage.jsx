@@ -8,17 +8,24 @@ export default function RegisterPage({ onBack }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  function handleRegister(e) {
+  async function handleRegister(e) {
     e.preventDefault();
     setError('');
     if (!name.trim() || !username.trim() || !password.trim()) {
       setError('Lengkapi semua field terlebih dahulu.');
       return;
     }
-    const result = register(name.trim(), username.trim(), password.trim());
-    if (!result.success) { setError(result.message); return; }
-    setSuccess(true);
+    setLoading(true);
+    try {
+      await register(name.trim(), username.trim(), password.trim());
+      setSuccess(true);
+    } catch (err) {
+      setError(err.message || 'Registrasi gagal.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -58,17 +65,19 @@ export default function RegisterPage({ onBack }) {
               <div className="form-group">
                 <label>Nama Lengkap</label>
                 <input className="form-input" type="text" placeholder="Nama lengkap Anda"
-                  value={name} onChange={e => setName(e.target.value)} />
+                  value={name} onChange={e => setName(e.target.value)} disabled={loading} />
               </div>
               <div className="form-group">
                 <label>Username</label>
                 <input className="form-input" type="text" placeholder="Buat username unik"
-                  value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" />
+                  value={username} onChange={e => setUsername(e.target.value)}
+                  autoComplete="username" disabled={loading} />
               </div>
               <div className="form-group">
                 <label>Password</label>
                 <input className="form-input" type="password" placeholder="Buat password"
-                  value={password} onChange={e => setPassword(e.target.value)} autoComplete="new-password" />
+                  value={password} onChange={e => setPassword(e.target.value)}
+                  autoComplete="new-password" disabled={loading} />
               </div>
 
               {error && (
@@ -81,11 +90,13 @@ export default function RegisterPage({ onBack }) {
                 </div>
               )}
 
-              <button type="submit" className="btn btn-login-main btn-lg">Daftar Sekarang</button>
+              <button type="submit" className="btn btn-login-main btn-lg" disabled={loading}>
+                {loading ? 'Memproses...' : 'Daftar Sekarang'}
+              </button>
             </form>
 
             <p className="auth-hint">
-              Sudah punya akun? <button onClick={onBack}>Masuk di sini</button>
+              Sudah punya akun? <button onClick={onBack} disabled={loading}>Masuk di sini</button>
             </p>
           </>
         )}

@@ -1,118 +1,100 @@
 import { useState } from 'react';
-import { Modal, SearchBar, EmptyState, Pill, useConfirm } from '../components/UI';
+import { SearchBar, EmptyState } from '../components/UI';
 
-export default function OrdersPage({ orders, setOrders, users, menus }) {
-  const [search, setSearch] = useState('');
-  const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ userId: '', menuId: '', date: new Date().toISOString().split('T')[0] });
-  const [formError, setFormError] = useState('');
-  const { confirm, ConfirmDialog } = useConfirm();
+const FILTERS = ['Semua', 'Registered', 'Historical'];
 
-  const regUsers = users.filter(u => u.role === 'user');
+export default function OrdersPage({ orders, users }) {
+  const [search, setSearch]   = useState('');
+  const [filter, setFilter]   = useState('Semua');
 
-  const filtered = orders.filter(o =>
-    o.userName.toLowerCase().includes(search.toLowerCase()) ||
-    o.menuName.toLowerCase().includes(search.toLowerCase()) ||
-    o.id.toLowerCase().includes(search.toLowerCase())
-  );
+  const usersById = Object.fromEntries(users.map(u => [u.id, u]));
 
-  function openAdd() {
-    setForm({ userId: regUsers[0]?.id || '', menuId: menus[0]?.id || '', date: new Date().toISOString().split('T')[0] });
-    setFormError('');
-    setModal(true);
-  }
+  const filtered = orders.filter(o => {
+    const source = usersById[o.userId]?.source || 'historical';
+    if (filter === 'Registered' && source !== 'registered') return false;
+    if (filter === 'Historical' && source !== 'historical')  return false;
+    return (
+      (o.userName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (o.menuName || '').toLowerCase().includes(search.toLowerCase()) ||
+      String(o.id).includes(search)
+    );
+  });
 
-  function handleSave() {
-    const { userId, menuId, date } = form;
-    if (!userId || !menuId || !date) { setFormError('Lengkapi semua field.'); return; }
-    const u = users.find(x => x.id === userId);
-    const m = menus.find(x => x.id === menuId);
-    setOrders(prev => [...prev, {
-      id: 'ORD' + String(Date.now()).slice(-6),
-      userId, userName: u.name,
-      menuId, menuName: m.name,
-      date
-    }]);
-    setModal(false);
-  }
-
-  async function handleDelete(order) {
-    const ok = await confirm(`Hapus data pemesanan "${order.id}"?`);
-    if (ok) setOrders(prev => prev.filter(o => o.id !== order.id));
-  }
+  const counts = {
+    Semua:      orders.length,
+    Registered: orders.filter(o => (usersById[o.userId]?.source || 'historical') === 'registered').length,
+    Historical: orders.filter(o => (usersById[o.userId]?.source || 'historical') === 'historical').length,
+  };
 
   return (
-    <>
-      {ConfirmDialog}
-
-      <div className="page-card">
-        <div className="card-header">
-          <div className="card-header-title">Riwayat Pemesanan ({orders.length} data)</div>
-          <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Cari pemesanan..." />
-            <button className="btn btn-primary" onClick={openAdd}>+ Tambah</button>
-          </div>
-        </div>
-
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>ID Transaksi</th>
-                <th>Pengguna</th>
-                <th>Menu</th>
-                <th>Tanggal</th>
-                <th>Label</th>
-                <th>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr><td colSpan={7}><EmptyState icon="📋" message="Tidak ada data pemesanan." /></td></tr>
-              ) : filtered.map((o, i) => (
-                <tr key={o.id}>
-                  <td style={{ color: 'var(--gray3)' }}>{i + 1}</td>
-                  <td><span className="mono">{o.id}</span></td>
-                  <td>{o.userName}</td>
-                  <td>{o.menuName}</td>
-                  <td style={{ color: 'var(--gray4)' }}>{o.date}</td>
-                  <td><Pill variant="green">1 (positif)</Pill></td>
-                  <td>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleDelete(o)}>Hapus</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <div className="page-card">
+      <div className="card-header">
+        <div className="card-header-title">Riwayat Pemesanan ({filtered.length} data)</div>
+        <SearchBar value={search} onChange={setSearch} placeholder="Cari pemesanan..." />
       </div>
 
-      {modal && (
-        <Modal title="Tambah Data Pemesanan" onClose={() => setModal(false)}>
-          <div className="form-group">
-            <label>Pengguna</label>
-            <select className="form-select" value={form.userId} onChange={e => setForm(f => ({ ...f, userId: e.target.value }))}>
-              {regUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Menu</label>
-            <select className="form-select" value={form.menuId} onChange={e => setForm(f => ({ ...f, menuId: e.target.value }))}>
-              {menus.map(m => <option key={m.id} value={m.id}>{m.icon} {m.name}</option>)}
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Tanggal</label>
-            <input className="form-input" type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
-          </div>
-          {formError && <p style={{ color: 'var(--danger)', fontSize: '.78rem', marginBottom: '.5rem' }}>⚠️ {formError}</p>}
-          <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={() => setModal(false)}>Batal</button>
-            <button className="btn btn-primary" onClick={handleSave}>Simpan</button>
-          </div>
-        </Modal>
-      )}
-    </>
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: '.4rem', padding: '.75rem 1.3rem 0', borderBottom: '1px solid var(--gray2)', marginBottom: 0 }}>
+        {FILTERS.map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              padding: '.35rem 1rem',
+              border: 'none',
+              borderBottom: filter === f ? '2.5px solid var(--green)' : '2.5px solid transparent',
+              background: 'none',
+              color: filter === f ? 'var(--green)' : 'var(--gray4)',
+              fontWeight: filter === f ? 700 : 400,
+              fontSize: '.82rem',
+              cursor: 'pointer',
+              fontFamily: 'var(--font)',
+              paddingBottom: '.5rem',
+              transition: 'all .15s',
+            }}
+          >
+            {f}
+            <span style={{
+              marginLeft: '.35rem',
+              background: filter === f ? 'var(--green)' : 'var(--gray2)',
+              color: filter === f ? 'white' : 'var(--gray4)',
+              borderRadius: 99, padding: '1px 7px',
+              fontSize: '.72rem', fontWeight: 700,
+            }}>
+              {counts[f]}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <div className="table-wrapper">
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>ID</th>
+              <th>Pengguna</th>
+              <th>Menu</th>
+              <th>Tanggal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={5}><EmptyState icon="📋" message="Tidak ada data pemesanan." /></td></tr>
+            ) : filtered.map((o, i) => (
+              <tr key={`${o.id}-${o.menuId}-${i}`}>
+                <td style={{ color: 'var(--gray3)' }}>{i + 1}</td>
+                <td><span className="mono">{o.id}</span></td>
+                <td style={{ color: (usersById[o.userId]?.source || 'historical') === 'registered' ? 'var(--green-dark)' : 'var(--gray4)' }}>
+                  {o.userName}
+                </td>
+                <td>{o.menuName}</td>
+                <td style={{ color: 'var(--gray4)' }}>{o.date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

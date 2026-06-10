@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+
+# Model weights (besar, tidak disimpan di git)
+models/*.pth
+models/*.pt
+
+# Environment
+.env
+.env.local
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

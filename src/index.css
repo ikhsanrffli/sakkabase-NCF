@@ -48,9 +48,9 @@ body {
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
-.animate-in { animation: fadeInUp .3s ease both; }
+.animate-in { animation: fadeInUp .3s ease; }
 
 /* ── Page layout ─────────────────────────────────────────── */
 .main-layout { display: flex; min-height: 100vh; }
@@ -406,6 +406,7 @@ body {
   background: white; border-radius: var(--radius-md);
   border: 1px solid var(--gray2); overflow: hidden;
   transition: transform .15s, box-shadow .15s;
+  display: flex; flex-direction: column;
 }
 .menu-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
 .menu-card-img {
@@ -414,7 +415,8 @@ body {
   font-size: 2.5rem;
   background: linear-gradient(135deg, var(--green-light) 0%, var(--gold-light) 100%);
 }
-.menu-card-body { padding: .75rem; }
+.menu-card-body { padding: .75rem; display: flex; flex-direction: column; flex: 1; }
+.menu-card-body .btn { margin-top: auto; }
 .menu-card-cat { font-size: .67rem; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .15rem; }
 .menu-card-name { font-size: .83rem; font-weight: 700; color: var(--gray5); margin-bottom: .2rem; }
 .menu-card-id { font-size: .67rem; color: var(--gray3); font-family: monospace; }
@@ -450,6 +452,7 @@ body {
   position: fixed; inset: 0; background: rgba(0,0,0,.5);
   z-index: 1000; display: flex; align-items: center;
   justify-content: center; padding: 1rem;
+  overflow-y: auto;
 }
 .modal-box {
   background: white; border-radius: var(--radius-lg);
