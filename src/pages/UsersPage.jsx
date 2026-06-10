@@ -6,7 +6,7 @@ export default function UsersPage({ users, setUsers, setOrders }) {
   const [search, setSearch] = useState('');
   const { confirm, ConfirmDialog } = useConfirm();
 
-  const regUsers = users.filter(u => u.role === 'user');
+  const regUsers = users.filter(u => u.source === 'registered');
   const filtered = regUsers.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.username.toLowerCase().includes(search.toLowerCase())
