@@ -6,9 +6,9 @@ Proses pelatihan model NCF dilakukan dalam dua tahap, yaitu pencarian konfiguras
 
 ## Pencarian Konfigurasi Terbaik (Grid Search)
 
-Untuk menentukan kombinasi hyperparameter yang menghasilkan performa terbaik, dilakukan grid search terhadap tiga konfigurasi model yang berbeda. Ketiga konfigurasi memvariasikan dimensi embedding, jumlah lapisan MLP, nilai dropout, dan learning rate. Seluruh konfigurasi dilatih menggunakan data latih dan data uji yang sama agar perbandingan antar konfigurasi berlangsung secara adil.
+Sebelum melatih model final, penelitian ini melakukan pencarian konfigurasi hyperparameter terbaik melalui grid search terhadap tiga konfigurasi yang berbeda. Ketiga konfigurasi memvariasikan dimensi embedding, jumlah lapisan MLP, nilai dropout, dan learning rate. Seluruh konfigurasi dilatih menggunakan data latih dan data uji yang sama agar perbandingan antar konfigurasi berlangsung secara adil.
 
-Tabel 4.8 menampilkan ketiga konfigurasi yang diuji beserta hasil evaluasinya pada data uji.
+Hasil perbandingan kinerja ketiga konfigurasi tersebut ditampilkan pada Tabel 4.8.
 
 **Tabel 4.8 Hasil Grid Search NCF**
 
@@ -18,7 +18,13 @@ Tabel 4.8 menampilkan ketiga konfigurasi yang diuji beserta hasil evaluasinya pa
 | **B**       | **16**    | **[32, 16, 8]** | **0,3** | **0,001**     | **22**        | **0,3620** | **0,1889** |
 | C           | 32        | [64, 32]        | 0,2     | 0,0005        | 31            | 0,3408     | 0,1734     |
 
-Konfigurasi B menghasilkan nilai HR@10 dan NDCG@10 tertinggi di antara ketiga konfigurasi, sehingga dipilih sebagai konfigurasi model final yang digunakan pada tahap inferensi. Rincian perhitungan metrik evaluasi HR@10 dan NDCG@10 dibahas lebih lanjut pada subbab 4.1.5.
+Berdasarkan Tabel 4.8, terlihat bahwa Konfigurasi B menghasilkan nilai HR@10 dan NDCG@10 tertinggi di antara ketiga konfigurasi. Hasil ini menunjukkan beberapa temuan penting:
+
+1. **Perbandingan dengan Konfigurasi A:** Meskipun Konfigurasi A menggunakan dimensi embedding yang lebih besar (32) dan lapisan MLP yang lebih dalam ([64, 32, 16]), performa yang dihasilkan justru lebih rendah dibandingkan Konfigurasi B (HR@10: 0,3312 vs 0,3620). Hal ini mengindikasikan bahwa model yang lebih besar tidak selalu lebih unggul pada dataset yang bersifat sparse, di mana rata-rata setiap pengguna hanya memiliki sekitar 3–4 interaksi.
+
+2. **Perbandingan dengan Konfigurasi C:** Konfigurasi C menggunakan learning rate yang lebih kecil (0,0005) sehingga membutuhkan epoch lebih banyak untuk mencapai konvergensi (epoch ke-31). Meski demikian, performa akhirnya tetap berada di bawah Konfigurasi B (HR@10: 0,3408 vs 0,3620), yang menunjukkan bahwa pengurangan learning rate pada kapasitas model yang sama tidak memberikan peningkatan yang signifikan.
+
+Oleh karena itu, Konfigurasi B ditetapkan sebagai konfigurasi model final karena menghasilkan performa terbaik dengan arsitektur yang lebih ringan, dropout lebih tinggi (0,3), dan konvergensi yang lebih cepat (epoch ke-22). Rincian perhitungan metrik evaluasi HR@10 dan NDCG@10 dibahas lebih lanjut pada subbab 4.1.5.
 
 ---
 
@@ -46,7 +52,7 @@ Tabel 4.9 menampilkan seluruh hyperparameter yang digunakan dalam pelatihan Konf
 
 Setiap epoch memproses total 18.870 sampel yang terdiri dari 3.774 sampel positif dan 15.096 sampel negatif dengan rasio 1:4. Sampel negatif dibangkitkan ulang secara acak di setiap awal epoch sehingga model mendapatkan variasi data negatif yang berbeda di setiap iterasi dan tidak menghafal pola negatif yang sama secara berulang.
 
-Tabel 4.10 menampilkan perkembangan nilai training loss di setiap epoch selama proses pelatihan berlangsung.
+Perkembangan nilai training loss selama proses pelatihan berlangsung dapat dilihat pada Tabel 4.10.
 
 **Tabel 4.10 Perkembangan Training Loss per Epoch — Konfigurasi B**
 
@@ -64,7 +70,7 @@ Tabel 4.10 menampilkan perkembangan nilai training loss di setiap epoch selama p
 | 26    | 0,4180        | Tidak ada peningkatan (4/5) |
 | 27    | 0,4189        | Early stop terpenuhi (5/5)  |
 
-Nilai training loss mengalami penurunan secara konsisten dari epoch ke-1 sebesar 0,6823 hingga mencapai nilai terbaik pada epoch ke-22 sebesar 0,4143. Setelah epoch ke-22, nilai loss tidak menunjukkan penurunan yang berarti selama 5 epoch berturut-turut sehingga pelatihan dihentikan secara otomatis pada epoch ke-27.
+Berdasarkan Tabel 4.10, nilai training loss mengalami penurunan secara konsisten dari epoch ke-1 sebesar 0,6823 hingga mencapai nilai terbaik pada epoch ke-22 sebesar 0,4143. Setelah epoch ke-22, nilai loss tidak lagi menunjukkan penurunan yang berarti selama 5 epoch berturut-turut, sehingga pelatihan dihentikan secara otomatis pada epoch ke-27. Hal ini menunjukkan bahwa model telah mencapai titik konvergensi optimal dan pelatihan lebih lanjut tidak akan memberikan peningkatan performa yang signifikan.
 
 Gambar 4.X menampilkan kurva training loss dan HR@10 selama proses pelatihan berlangsung.
 
@@ -75,7 +81,7 @@ Gambar 4.X menampilkan kurva training loss dan HR@10 selama proses pelatihan ber
 
 ## Model Final
 
-Model dengan performa terbaik yang dicapai pada epoch ke-22 disimpan secara otomatis ke dalam file checkpoint `models/ncf_best.pth`. File tersebut menyimpan bobot seluruh lapisan model, pemetaan ID pengguna dan ID item ke indeks embedding, jumlah pengguna (1.212) dan jumlah item (207), nomor epoch terbaik, serta seluruh konfigurasi hyperparameter yang digunakan selama pelatihan.
+Model dengan performa terbaik yang dicapai pada epoch ke-22 disimpan secara otomatis ke dalam file checkpoint. File tersebut menyimpan bobot seluruh lapisan model, pemetaan ID pengguna dan ID item ke indeks embedding, jumlah pengguna (1.212) dan jumlah item (207), nomor epoch terbaik, serta seluruh konfigurasi hyperparameter yang digunakan selama pelatihan.
 
 Tabel 4.11 menampilkan informasi lengkap model final yang tersimpan.
 
