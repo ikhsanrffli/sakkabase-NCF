@@ -126,6 +126,9 @@ export const api = {
     const data = await request('GET', '/users');
     return data.users.map(adaptUser);
   },
+  createUser: (nama_lengkap, username, password, role) =>
+    request('POST', '/users', { nama_lengkap, username, password, role }),
+  updateUser: (id, fields) => request('PUT', `/users/${id}`, fields),
   deleteUser: (id) => request('DELETE', `/users/${id}`),
 
   // Model (admin)

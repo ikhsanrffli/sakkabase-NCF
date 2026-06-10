@@ -30,6 +30,18 @@ class UserRegister(BaseModel):
     username:     str
     password:     str
 
+class UserCreate(BaseModel):
+    nama_lengkap: str
+    username:     str
+    password:     str
+    role:         str = "user"
+
+class UserUpdate(BaseModel):
+    nama_lengkap: Optional[str] = None
+    username:     Optional[str] = None
+    password:     Optional[str] = None
+    role:         Optional[str] = None
+
 class UserResponse(BaseModel):
     id:           int
     nama_lengkap: str
