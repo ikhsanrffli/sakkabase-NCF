@@ -3,7 +3,7 @@
 --  Sistem         : Sistem Rekomendasi Menu Sakka Base
 --  Metode         : Neural Collaborative Filtering (NCF)
 --  DBMS           : MySQL 8.x
---  Charset        : utf8mb4 (mendukung karakter khusus Unicode penuh)
+--  Charset        : utf8mb4
 -- ================================================================
 
 CREATE DATABASE IF NOT EXISTS sakkabase_ncf
@@ -15,8 +15,6 @@ USE sakkabase_ncf;
 
 -- ----------------------------------------------------------------
 -- TABEL 1 : users
--- Fungsi   : Menyimpan akun Admin, User terdaftar, dan entitas
---            historis No Transaksi kafe
 -- ----------------------------------------------------------------
 CREATE TABLE users (
     id           INT                              NOT NULL AUTO_INCREMENT,
@@ -32,42 +30,40 @@ CREATE TABLE users (
 
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'Akun seluruh pengguna: Admin, User terdaftar, dan entitas historis';
+  COLLATE = utf8mb4_unicode_ci;
 
 
 -- ----------------------------------------------------------------
 -- TABEL 2 : menu_items
--- Fungsi   : Data master katalog menu kafe
 -- ----------------------------------------------------------------
 CREATE TABLE menu_items (
-    id         INT          NOT NULL AUTO_INCREMENT,
-    item_id    VARCHAR(100) NOT NULL,
-    nama_menu  VARCHAR(150) NOT NULL,
-    kategori   VARCHAR(100) NOT NULL,
-    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
-                                     ON UPDATE CURRENT_TIMESTAMP,
+    id         INT              NOT NULL AUTO_INCREMENT,
+    item_id    VARCHAR(100)     NOT NULL,
+    nama_menu  VARCHAR(150)     NOT NULL,
+    kategori   VARCHAR(100)     NOT NULL,
+    price      INT              NOT NULL DEFAULT 0 COMMENT 'Harga estimasi dalam Rupiah',
+    created_at DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP
+                                         ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_menu_items         PRIMARY KEY (id),
     CONSTRAINT uq_menu_items_item_id UNIQUE      (item_id)
 
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'Data master katalog menu kafe Sakka Base';
+  COLLATE = utf8mb4_unicode_ci;
 
 
 -- ----------------------------------------------------------------
 -- TABEL 3 : orders
--- Fungsi   : Riwayat interaksi positif sebagai implicit feedback NCF
+-- Setiap baris = satu transaksi (bisa punya banyak item di order_details)
 -- ----------------------------------------------------------------
 CREATE TABLE orders (
-    id           INT      NOT NULL AUTO_INCREMENT,
-    user_id      INT      NOT NULL,
-    menu_item_id INT      NOT NULL,
-    tanggal      DATE     NOT NULL,
-    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id         INT              NOT NULL AUTO_INCREMENT,
+    user_id    INT              NOT NULL,
+    tanggal    DATE             NOT NULL,
+    total      INT              NOT NULL DEFAULT 0 COMMENT 'Total harga semua item',
+    created_at DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_orders PRIMARY KEY (id),
 
@@ -77,25 +73,51 @@ CREATE TABLE orders (
         ON DELETE CASCADE
         ON UPDATE CASCADE,
 
-    CONSTRAINT fk_orders_menu_item_id
+    INDEX idx_orders_user_id (user_id),
+    INDEX idx_orders_tanggal (tanggal)
+
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_unicode_ci
+  COMMENT = 'Transaksi pemesanan (header). Detail item ada di order_details.';
+
+
+-- ----------------------------------------------------------------
+-- TABEL 4 : order_details
+-- Setiap baris = satu item dalam satu transaksi
+-- ----------------------------------------------------------------
+CREATE TABLE order_details (
+    id           INT     NOT NULL AUTO_INCREMENT,
+    order_id     INT     NOT NULL,
+    menu_item_id INT     NOT NULL,
+    qty          TINYINT NOT NULL DEFAULT 1,
+    price        INT     NOT NULL DEFAULT 0 COMMENT 'Harga per item saat transaksi',
+
+    CONSTRAINT pk_order_details PRIMARY KEY (id),
+
+    CONSTRAINT fk_od_order_id
+        FOREIGN KEY (order_id)
+        REFERENCES orders(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_od_menu_item_id
         FOREIGN KEY (menu_item_id)
         REFERENCES menu_items(id)
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
-    INDEX idx_orders_user_id      (user_id),
-    INDEX idx_orders_menu_item_id (menu_item_id),
-    INDEX idx_orders_tanggal      (tanggal)
+    INDEX idx_od_order_id     (order_id),
+    INDEX idx_od_menu_item_id (menu_item_id)
 
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'Riwayat pemesanan positif sebagai implicit feedback model NCF';
+  COMMENT = 'Detail item per transaksi. Digunakan sebagai implicit feedback NCF.';
 
 
 -- ----------------------------------------------------------------
--- TABEL 4 : recommendations
--- Fungsi   : Cache Top-10 rekomendasi model NCF per pengguna
+-- TABEL 5 : recommendations
 -- ----------------------------------------------------------------
 CREATE TABLE recommendations (
     id           INT      NOT NULL AUTO_INCREMENT,
@@ -105,9 +127,9 @@ CREATE TABLE recommendations (
     score        FLOAT    NOT NULL,
     generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_recommendations  PRIMARY KEY (id),
-    CONSTRAINT uq_rec_user_rank    UNIQUE (user_id, `rank`),
-    CONSTRAINT uq_rec_user_item    UNIQUE (user_id, menu_item_id),
+    CONSTRAINT pk_recommendations PRIMARY KEY (id),
+    CONSTRAINT uq_rec_user_rank   UNIQUE (user_id, `rank`),
+    CONSTRAINT uq_rec_user_item   UNIQUE (user_id, menu_item_id),
 
     CONSTRAINT fk_rec_user_id
         FOREIGN KEY (user_id)
@@ -126,13 +148,11 @@ CREATE TABLE recommendations (
 
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'Cache hasil Top-10 rekomendasi model NCF per pengguna';
+  COLLATE = utf8mb4_unicode_ci;
 
 
 -- ----------------------------------------------------------------
--- TABEL 5 : model_status
--- Fungsi   : Log riwayat pelatihan dan metrik evaluasi model NCF
+-- TABEL 6 : model_status
 -- ----------------------------------------------------------------
 CREATE TABLE model_status (
     id          INT                              NOT NULL AUTO_INCREMENT,
@@ -145,20 +165,15 @@ CREATE TABLE model_status (
     created_at  DATETIME                         NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_model_status PRIMARY KEY (id),
-
-    INDEX idx_model_status_status     (status),
-    INDEX idx_model_status_trained_at (trained_at)
+    INDEX idx_model_status_status (status)
 
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
-  COLLATE = utf8mb4_unicode_ci
-  COMMENT = 'Log riwayat pelatihan dan status aktif model NCF';
+  COLLATE = utf8mb4_unicode_ci;
 
 
 -- ----------------------------------------------------------------
--- SEED DATA : Akun Admin default
--- Password default: 'admin123' (bcrypt hash)
--- Ganti password setelah login pertama
+-- SEED DATA : Akun Admin default  (password: admin123)
 -- ----------------------------------------------------------------
 INSERT INTO users (nama_lengkap, username, password, role, source)
 VALUES (
@@ -169,9 +184,5 @@ VALUES (
     'registered'
 );
 
-
--- ----------------------------------------------------------------
--- VERIFIKASI : Pastikan semua tabel berhasil dibuat
--- ----------------------------------------------------------------
 SHOW TABLES;
--- Expected output: 5 tabel — menu_items, model_status, orders, recommendations, users
+-- Expected: 6 tabel — menu_items, model_status, order_details, orders, recommendations, users

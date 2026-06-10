@@ -11,8 +11,8 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 class OrderCreate(BaseModel):
-    menu_item_id: int
-    tanggal:      date = date.today()
+    items:   list[schemas.OrderItemCreate]
+    tanggal: date = date.today()
 
 
 @router.post("", response_model=schemas.OrderResponse, status_code=status.HTTP_201_CREATED)
@@ -21,17 +21,43 @@ def create_order(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    """Tambah pesanan baru untuk user yang sedang login."""
-    menu_item = db.get(models.MenuItem, body.menu_item_id)
-    if not menu_item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Menu tidak ditemukan")
+    """Tambah pesanan baru (satu transaksi bisa punya beberapa item)."""
+    if not body.items:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Items tidak boleh kosong")
 
+    # Validasi semua menu dan hitung total
+    details_data = []
+    total = 0
+    for item in body.items:
+        menu_item = db.get(models.MenuItem, item.menu_item_id)
+        if not menu_item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Menu id={item.menu_item_id} tidak ditemukan",
+            )
+        subtotal = menu_item.price * item.qty
+        total   += subtotal
+        details_data.append((menu_item, item.qty, menu_item.price))
+
+    # Buat header order
     order = models.Order(
-        user_id      = current_user.id,
-        menu_item_id = body.menu_item_id,
-        tanggal      = body.tanggal,
+        user_id = current_user.id,
+        tanggal = body.tanggal,
+        total   = total,
     )
     db.add(order)
+    db.flush()  # dapatkan order.id sebelum commit
+
+    # Buat detail order
+    for menu_item, qty, price in details_data:
+        detail = models.OrderDetail(
+            order_id     = order.id,
+            menu_item_id = menu_item.id,
+            qty          = qty,
+            price        = price,
+        )
+        db.add(detail)
+
     db.commit()
     db.refresh(order)
     return order

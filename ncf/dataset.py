@@ -27,9 +27,10 @@ def load_interactions() -> list[tuple]:
     conn = mysql.connector.connect(**DB_CONFIG)
     cur  = conn.cursor()
     cur.execute("""
-        SELECT user_id, menu_item_id, tanggal
-        FROM   orders
-        ORDER  BY user_id, tanggal, id
+        SELECT o.user_id, od.menu_item_id, o.tanggal
+        FROM   orders o
+        JOIN   order_details od ON od.order_id = o.id
+        ORDER  BY o.user_id, o.tanggal, o.id
     """)
     rows = cur.fetchall()
     cur.close()

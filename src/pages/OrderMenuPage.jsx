@@ -52,13 +52,15 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
     return cart.reduce((acc, c) => acc + c.qty, 0);
   }
 
+  function getTotalPrice() {
+    return cart.reduce((acc, c) => acc + (c.price || 0) * c.qty, 0);
+  }
+
   async function handleCheckout() {
     if (cart.length === 0 || submitting) return;
     setSubmitting(true);
     try {
-      for (const item of cart) {
-        await api.createOrder(item.dbId);
-      }
+      await api.createOrder(cart);
       const updatedOrders = await api.getMyOrders();
       setOrders(updatedOrders);
       setSuccessItems([...cart]);
@@ -92,10 +94,22 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '.45rem 0', borderBottom: '1px solid var(--gray2)', fontSize: '.83rem'
               }}>
-                <span>{item.icon} <strong>{item.name}</strong></span>
-                <span style={{ color: 'var(--green)', fontWeight: 700 }}>x{item.qty}</span>
+                <span>{item.icon} <strong>{item.name}</strong> ×{item.qty}</span>
+                {item.price > 0 && (
+                  <span style={{ color: 'var(--green-dark)', fontWeight: 700 }}>
+                    Rp {(item.price * item.qty).toLocaleString('id-ID')}
+                  </span>
+                )}
               </div>
             ))}
+            {successItems.reduce((acc, i) => acc + (i.price || 0) * i.qty, 0) > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '.5rem', fontSize: '.85rem', fontWeight: 700 }}>
+                <span>Total</span>
+                <span style={{ color: 'var(--green)' }}>
+                  Rp {successItems.reduce((acc, i) => acc + (i.price || 0) * i.qty, 0).toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
           </div>
           <button
             className="btn btn-primary"
@@ -171,7 +185,12 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
                 <div className="menu-card-body">
                   <div className="menu-card-cat">{m.category}</div>
                   <div className="menu-card-name">{m.name}</div>
-                  <div className="menu-card-id" style={{ marginBottom: '.6rem' }}>{m.code || m.id}</div>
+                  <div className="menu-card-id">{m.code || m.id}</div>
+                  {m.price > 0 && (
+                    <div style={{ fontSize: '.78rem', color: 'var(--green-dark)', fontWeight: 700, marginBottom: '.6rem' }}>
+                      Rp {m.price.toLocaleString('id-ID')}
+                    </div>
+                  )}
 
                   {inCart ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
@@ -307,14 +326,20 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
                 <div style={{
                   background: 'var(--green-light)', borderRadius: 10,
                   padding: '.75rem 1rem', marginBottom: '1rem',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
                 }}>
-                  <span style={{ fontSize: '.83rem', color: 'var(--green-dark)' }}>
-                    Total item: <strong>{getTotalItems()} menu</strong>
-                  </span>
-                  <span style={{ fontSize: '.75rem', color: 'var(--green)', fontWeight: 700 }}>
-                    {cart.length} jenis
-                  </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '.3rem' }}>
+                    <span style={{ fontSize: '.83rem', color: 'var(--green-dark)' }}>
+                      Total item: <strong>{getTotalItems()} menu</strong>
+                    </span>
+                    <span style={{ fontSize: '.75rem', color: 'var(--green)', fontWeight: 700 }}>
+                      {cart.length} jenis
+                    </span>
+                  </div>
+                  {getTotalPrice() > 0 && (
+                    <div style={{ fontSize: '.88rem', color: 'var(--green-dark)', fontWeight: 700 }}>
+                      Total: Rp {getTotalPrice().toLocaleString('id-ID')}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: '.5rem' }}>

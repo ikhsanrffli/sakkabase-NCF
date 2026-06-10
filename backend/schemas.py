@@ -52,6 +52,7 @@ class MenuItemResponse(BaseModel):
     item_id:   str
     nama_menu: str
     kategori:  str
+    price:     int
 
     model_config = {"from_attributes": True}
 
@@ -62,11 +63,24 @@ class MenuItemListResponse(BaseModel):
 
 # ── Order ─────────────────────────────────────────────────────────────────────
 
-class OrderResponse(BaseModel):
+class OrderItemCreate(BaseModel):
+    menu_item_id: int
+    qty:          int = 1
+
+class OrderDetailResponse(BaseModel):
     id:        int
-    user_id:   int
-    tanggal:   date
+    qty:       int
+    price:     int
     menu_item: MenuItemResponse
+
+    model_config = {"from_attributes": True}
+
+class OrderResponse(BaseModel):
+    id:            int
+    user_id:       int
+    tanggal:       date
+    total:         int
+    order_details: list[OrderDetailResponse]
 
     model_config = {"from_attributes": True}
 

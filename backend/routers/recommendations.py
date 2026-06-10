@@ -15,10 +15,10 @@ def _popularity_fallback(db: Session, limit: int = 10) -> list[schemas.Recommend
     Digunakan ketika user belum memiliki rekomendasi NCF di database.
     """
     rows = (
-        db.query(models.MenuItem, func.count(models.Order.id).label("cnt"))
-        .join(models.Order, models.Order.menu_item_id == models.MenuItem.id)
+        db.query(models.MenuItem, func.count(models.OrderDetail.id).label("cnt"))
+        .join(models.OrderDetail, models.OrderDetail.menu_item_id == models.MenuItem.id)
         .group_by(models.MenuItem.id)
-        .order_by(func.count(models.Order.id).desc())
+        .order_by(func.count(models.OrderDetail.id).desc())
         .limit(limit)
         .all()
     )

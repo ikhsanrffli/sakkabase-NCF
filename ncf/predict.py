@@ -28,7 +28,12 @@ def load_checkpoint(path: str = MODEL_PATH) -> tuple:
 
 def _get_ordered_items(conn, user_id: int) -> set:
     cur = conn.cursor()
-    cur.execute("SELECT menu_item_id FROM orders WHERE user_id = %s", (user_id,))
+    cur.execute("""
+        SELECT od.menu_item_id
+        FROM   order_details od
+        JOIN   orders o ON o.id = od.order_id
+        WHERE  o.user_id = %s
+    """, (user_id,))
     result = {row[0] for row in cur.fetchall()}
     cur.close()
     return result

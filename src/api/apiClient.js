@@ -33,7 +33,6 @@ async function request(method, path, body = null) {
 function adaptMenu(m) {
   const codeMatch = m.item_id.match(/^([A-Z0-9]+)/);
   const code = codeMatch ? codeMatch[1] : m.item_id;
-  // Fallback: extract name from item_id ("A07B - LE MINERAL 600ML" → "Le Mineral 600ml")
   const nameFromId = m.item_id.includes(' - ')
     ? m.item_id.split(' - ').slice(1).join(' - ').trim()
     : m.item_id;
@@ -41,8 +40,9 @@ function adaptMenu(m) {
     id: m.item_id,
     code,
     dbId: m.id,
-    name: m.nama || nameFromId,
+    name: m.nama_menu || nameFromId,
     category: m.kategori,
+    price: m.price || 0,
     icon: CATEGORY_ICONS[m.kategori] || '🍽️',
   };
 }
@@ -51,16 +51,29 @@ function adaptUser(u) {
   return { id: u.id, username: u.username, name: u.nama_lengkap, role: u.role, source: u.source };
 }
 
+// Expand each order_detail into its own flat row (preserves existing page rendering)
 function adaptOrder(o, usersById = {}) {
-  return {
-    id: o.id,
-    userId: o.user_id,
-    userName: usersById[o.user_id] || `User #${o.user_id}`,
-    menuId: o.menu_item?.item_id || '',
-    menuName: o.menu_item?.nama || '',
-    date: o.tanggal,
-    dbMenuId: o.menu_item_id,
-  };
+  const userName = usersById[o.user_id] || `User #${o.user_id}`;
+  const details  = o.order_details || [];
+  if (details.length === 0) {
+    return [{
+      id: o.id, userId: o.user_id, userName,
+      menuId: '', menuName: '', qty: 0, price: 0, total: o.total,
+      date: o.tanggal,
+    }];
+  }
+  return details.map(d => ({
+    id:       o.id,
+    userId:   o.user_id,
+    userName,
+    menuId:   d.menu_item?.item_id || '',
+    menuName: d.menu_item?.nama_menu || '',
+    qty:      d.qty,
+    price:    d.price,
+    total:    o.total,
+    date:     o.tanggal,
+    dbMenuId: d.menu_item?.id,
+  }));
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -85,15 +98,17 @@ export const api = {
   },
   getCategories: () => request('GET', '/menus/categories'),
 
-  // Orders
-  createOrder: (menu_item_id) => request('POST', '/orders', { menu_item_id }),
+  // Orders — cartItems: [{ dbId: int, qty: int }, ...]
+  createOrder: (cartItems) => request('POST', '/orders', {
+    items: cartItems.map(item => ({ menu_item_id: item.dbId, qty: item.qty || 1 })),
+  }),
   getMyOrders: async () => {
     const data = await request('GET', '/orders/my');
-    return data.orders.map(o => adaptOrder(o));
+    return data.orders.flatMap(o => adaptOrder(o));
   },
   getAllOrders: async (usersById = {}) => {
     const data = await request('GET', '/orders');
-    return data.orders.map(o => adaptOrder(o, usersById));
+    return data.orders.flatMap(o => adaptOrder(o, usersById));
   },
 
   // Recommendations

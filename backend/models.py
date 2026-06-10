@@ -5,7 +5,7 @@ reflect=True tidak dipakai agar struktur eksplisit dan mudah dibaca.
 
 from datetime import date, datetime
 from sqlalchemy import (
-    Column, Integer, String, Date, DateTime, Float,
+    Column, Integer, SmallInteger, String, Date, DateTime, Float,
     Enum, Text, ForeignKey, func,
 )
 from sqlalchemy.orm import relationship
@@ -35,24 +35,38 @@ class MenuItem(Base):
     item_id    = Column(String(100),  nullable=False, unique=True, index=True)
     nama_menu  = Column(String(150),  nullable=False)
     kategori   = Column(String(100),  nullable=False)
+    price      = Column(Integer,      nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
 
-    orders          = relationship("Order",          back_populates="menu_item")
+    order_details   = relationship("OrderDetail",    back_populates="menu_item")
     recommendations = relationship("Recommendation", back_populates="menu_item", cascade="all, delete")
 
 
 class Order(Base):
     __tablename__ = "orders"
 
-    id           = Column(Integer, primary_key=True, index=True)
-    user_id      = Column(Integer, ForeignKey("users.id",      ondelete="CASCADE"),   nullable=False, index=True)
-    menu_item_id = Column(Integer, ForeignKey("menu_items.id", ondelete="RESTRICT"),  nullable=False, index=True)
-    tanggal      = Column(Date,    nullable=False, index=True)
-    created_at   = Column(DateTime, nullable=False, server_default=func.now())
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    tanggal    = Column(Date,    nullable=False, index=True)
+    total      = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
 
-    user      = relationship("User",     back_populates="orders")
-    menu_item = relationship("MenuItem", back_populates="orders")
+    user          = relationship("User",        back_populates="orders")
+    order_details = relationship("OrderDetail", back_populates="order", cascade="all, delete")
+
+
+class OrderDetail(Base):
+    __tablename__ = "order_details"
+
+    id           = Column(Integer,      primary_key=True, index=True)
+    order_id     = Column(Integer,      ForeignKey("orders.id",     ondelete="CASCADE"),  nullable=False, index=True)
+    menu_item_id = Column(Integer,      ForeignKey("menu_items.id", ondelete="RESTRICT"), nullable=False, index=True)
+    qty          = Column(SmallInteger, nullable=False, default=1)
+    price        = Column(Integer,      nullable=False, default=0)
+
+    order     = relationship("Order",    back_populates="order_details")
+    menu_item = relationship("MenuItem", back_populates="order_details")
 
 
 class Recommendation(Base):
