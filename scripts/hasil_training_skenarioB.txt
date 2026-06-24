@@ -10,49 +10,37 @@ Rata-rata interaksi per pengguna  : 5.74
 Data latih (train positif)        : 3887
 Data uji (test pengguna, LOO)     : 820
 Sampel/epoch (positif+negatif)    : 19435
-Total parameter model             : 32833
 
 ================================================================
-PELATIHAN (Konfigurasi C)
+PELATIHAN DETAIL — Konfigurasi C (final)
 ================================================================
 Epoch |    Loss |   HR@10 |  NDCG@10 | Keterangan
-    1 |  0.6686 |  0.3402 |   0.1805 | Model terbaik tersimpan
-    2 |  0.5573 |  0.3390 |   0.1794 | Tidak ada peningkatan (1/5)
-    3 |  0.4634 |  0.3439 |   0.1800 | Model terbaik tersimpan
-    4 |  0.4450 |  0.3463 |   0.1801 | Model terbaik tersimpan
-    5 |  0.4388 |  0.3476 |   0.1812 | Model terbaik tersimpan
-    6 |  0.4372 |  0.3463 |   0.1827 | Tidak ada peningkatan (1/5)
-    7 |  0.4350 |  0.3439 |   0.1815 | Tidak ada peningkatan (2/5)
-    8 |  0.4347 |  0.3439 |   0.1789 | Tidak ada peningkatan (3/5)
-    9 |  0.4327 |  0.3427 |   0.1780 | Tidak ada peningkatan (4/5)
-   10 |  0.4319 |  0.3524 |   0.1821 | Model terbaik tersimpan
-   11 |  0.4330 |  0.3488 |   0.1814 | Tidak ada peningkatan (1/5)
-   12 |  0.4313 |  0.3524 |   0.1836 | Tidak ada peningkatan (2/5)
-   13 |  0.4319 |  0.3439 |   0.1807 | Tidak ada peningkatan (3/5)
-   14 |  0.4308 |  0.3439 |   0.1810 | Tidak ada peningkatan (4/5)
-   15 |  0.4266 |  0.3476 |   0.1833 | Tidak ada peningkatan (5/5)
-        Early stopping terpenuhi pada epoch 15
+    1 |  0.6688 |  0.3476 |   0.1797 | Model terbaik tersimpan
+    2 |  0.5525 |  0.3451 |   0.1828 | Tidak ada peningkatan (1/5)
+    3 |  0.4599 |  0.3451 |   0.1800 | Tidak ada peningkatan (2/5)
+    4 |  0.4432 |  0.3415 |   0.1780 | Tidak ada peningkatan (3/5)
+    5 |  0.4363 |  0.3500 |   0.1822 | Model terbaik tersimpan
+    6 |  0.4348 |  0.3402 |   0.1800 | Tidak ada peningkatan (1/5)
+    7 |  0.4353 |  0.3500 |   0.1828 | Tidak ada peningkatan (2/5)
+    8 |  0.4340 |  0.3415 |   0.1805 | Tidak ada peningkatan (3/5)
+    9 |  0.4330 |  0.3415 |   0.1799 | Tidak ada peningkatan (4/5)
+   10 |  0.4330 |  0.3439 |   0.1798 | Tidak ada peningkatan (5/5)
+        Early stopping pada epoch 10
 
 ================================================================
-HASIL AKHIR — MODEL FINAL (Konfigurasi C, Skenario B)
+TABEL PERBANDINGAN KONFIGURASI (pengganti Tabel 4.8)
 ================================================================
-Epoch terbaik            : 10
-Training loss epoch best : 0.4319
-Total epoch dijalankan   : 15
-Total parameter model    : 32833
+Konf | embed |     mlp_layers | drop |     lr | epoch |   HR@10 |  NDCG@10
+   A |    32 |   [64, 32, 16] |  0.2 |  0.001 |     1 |  0.3524 |   0.1835
+   B |    16 |    [32, 16, 8] |  0.3 |  0.001 |     3 |  0.3488 |   0.1824
+   C |    32 |       [64, 32] |  0.2 | 0.0005 |     5 |  0.3500 |   0.1822
+
+================================================================
+MODEL FINAL — Konfigurasi A
+================================================================
+Epoch terbaik            : 1
+Training loss epoch best : 0.6517
+Total epoch dijalankan   : 6
+Total parameter model    : 33345
 HR@10  (data uji)        : 0.3524
-NDCG@10 (data uji)       : 0.1821
-
-================================================================
-CONTOH TOP-10 REKOMENDASI — Pengguna 'Jenny Sanjaya' (idx 382)
-================================================================
- 1. A00A    skor=0.5761
- 2. C04B    skor=0.5419
- 3. C03C    skor=0.4914
- 4. A01D    skor=0.4657
- 5. A08C    skor=0.4606
- 6. A06C    skor=0.4525
- 7. A08B    skor=0.3887
- 8. C04G    skor=0.3456
- 9. C01O    skor=0.3429
-10. C08D    skor=0.3396
+NDCG@10 (data uji)       : 0.1835
