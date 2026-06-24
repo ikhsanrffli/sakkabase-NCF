@@ -243,6 +243,16 @@ def main():
 
     best_name = max(results, key=lambda k: results[k][1]["hr"])
     bc = results[best_name][1]
+
+    # simpan riwayat per-epoch Konfigurasi C (untuk Gambar 4.1 & Tabel 4.10)
+    import csv
+    hist_path = os.path.join(HERE, "history_configC.csv")
+    with open(hist_path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["epoch", "training_loss", "hr_at_10", "ndcg_at_10", "keterangan"])
+        for ep, loss, hr, ndcg, note in results["C"][1]["history"]:
+            w.writerow([ep, f"{loss:.4f}", f"{hr:.4f}", f"{ndcg:.4f}", note])
+    print(f"\n[info] Riwayat epoch Konfigurasi C disimpan -> {hist_path}")
     print("\n" + "=" * 64)
     print(f"MODEL FINAL — Konfigurasi {best_name}")
     print("=" * 64)

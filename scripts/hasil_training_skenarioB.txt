@@ -35,6 +35,8 @@ Konf | embed |     mlp_layers | drop |     lr | epoch |   HR@10 |  NDCG@10
    B |    16 |    [32, 16, 8] |  0.3 |  0.001 |     3 |  0.3488 |   0.1824
    C |    32 |       [64, 32] |  0.2 | 0.0005 |     5 |  0.3500 |   0.1822
 
+[info] Riwayat epoch Konfigurasi C disimpan -> /home/user/sakkabase-NCF/scripts/history_configC.csv
+
 ================================================================
 MODEL FINAL — Konfigurasi A
 ================================================================
