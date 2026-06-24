@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { Modal, SearchBar, EmptyState, Pill, useConfirm } from '../components/UI';
 
+const PER_PAGE = 25; // jumlah pengguna yang ditampilkan per halaman
+
 export default function UsersPage({ users, setUsers }) {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null); // null | 'add' | {edit: user}
   const [form, setForm] = useState({ name: '', username: '', password: '' });
   const [formError, setFormError] = useState('');
@@ -13,6 +16,14 @@ export default function UsersPage({ users, setUsers }) {
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.username.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Paginasi: pecah data agar tidak merender ratusan baris sekaligus.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);            // jaga-jaga bila data menyusut
+  const start = (safePage - 1) * PER_PAGE;
+  const pageData = filtered.slice(start, start + PER_PAGE);
+
+  function onSearch(v) { setSearch(v); setPage(1); }       // kembali ke halaman 1 saat mencari
 
   function openAdd() {
     setForm({ name: '', username: '', password: '' });
@@ -55,7 +66,7 @@ export default function UsersPage({ users, setUsers }) {
         <div className="card-header">
           <div className="card-header-title">Daftar Pengguna ({regUsers.length} user)</div>
           <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Cari pengguna..." />
+            <SearchBar value={search} onChange={onSearch} placeholder="Cari pengguna..." />
             <button className="btn btn-primary" onClick={openAdd}>+ Tambah</button>
           </div>
         </div>
@@ -70,9 +81,9 @@ export default function UsersPage({ users, setUsers }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={5}><EmptyState icon="👤" message="Tidak ada pengguna ditemukan." /></td></tr>
-              ) : filtered.map((u, i) => (
+              ) : pageData.map((u, i) => (
                 <tr key={u.id}>
-                  <td style={{ color: 'var(--gray3)' }}>{i + 1}</td>
+                  <td style={{ color: 'var(--gray3)' }}>{start + i + 1}</td>
                   <td><strong>{u.name}</strong></td>
                   <td><span className="mono">{u.username}</span></td>
                   <td><Pill variant="green">{u.role}</Pill></td>
@@ -85,6 +96,31 @@ export default function UsersPage({ users, setUsers }) {
             </tbody>
           </table>
         </div>
+
+        {filtered.length > 0 && (
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            flexWrap: 'wrap', gap: '.5rem', padding: '.8rem 1.3rem',
+            borderTop: '1px solid var(--gray2)', fontSize: '.81rem', color: 'var(--gray4)'
+          }}>
+            <span>
+              Menampilkan {start + 1}–{Math.min(start + PER_PAGE, filtered.length)} dari {filtered.length} pengguna
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(safePage - 1)}
+                disabled={safePage <= 1}
+              >‹ Sebelumnya</button>
+              <span>Halaman {safePage} dari {totalPages}</span>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(safePage + 1)}
+                disabled={safePage >= totalPages}
+              >Berikutnya ›</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {modal && (
