@@ -8,3 +8,11 @@ dist/
 npm-debug.log*
 .DS_Store
 *.local
+
+# python
+__pycache__/
+*.pyc
+
+# artefak training (regenerasi via train.py)
+ncf_pipeline/models/
+ncf_pipeline/outputs/
