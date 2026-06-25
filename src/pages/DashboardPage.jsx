@@ -41,12 +41,12 @@ export default function DashboardPage({ menus, orders, users }) {
               <div className="card-header-title">Konfigurasi Model NCF</div>
             </div>
             <div className="card-body" style={{ fontSize: '.82rem', color: 'var(--gray4)', lineHeight: 2 }}>
-              <div>📐 <strong>Embedding Dim:</strong> 64</div>
-              <div>🧠 <strong>Hidden Layer:</strong> 128 → 64 → 32</div>
+              <div>📐 <strong>Embedding Dim:</strong> 32</div>
+              <div>🧠 <strong>Hidden Layer:</strong> 64 → 32</div>
               <div>⚡ <strong>Aktivasi:</strong> ReLU + Sigmoid</div>
               <div>📉 <strong>Loss:</strong> Binary Cross-Entropy (BCE)</div>
-              <div>🔄 <strong>Optimizer:</strong> Adam (lr = 0.001)</div>
-              <div>📦 <strong>Batch Size:</strong> 256 | Epoch: 20</div>
+              <div>🔄 <strong>Optimizer:</strong> Adam (lr = 0.0005)</div>
+              <div>📦 <strong>Batch Size:</strong> 256 | Early Stopping</div>
               <div>🔀 <strong>Dataset Split:</strong> Leave-One-Out</div>
               <div>📊 <strong>Evaluasi:</strong> HR@10 &amp; NDCG@10</div>
             </div>
