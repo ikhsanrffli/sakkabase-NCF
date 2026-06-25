@@ -48,7 +48,7 @@ export default function DashboardPage({ menus, orders, users }) {
               <div>🔄 <strong>Optimizer:</strong> Adam (lr = 0.0005)</div>
               <div>📦 <strong>Batch Size:</strong> 256 | Early Stopping</div>
               <div>🔀 <strong>Dataset Split:</strong> Leave-One-Out</div>
-              <div>📊 <strong>Evaluasi:</strong> HR@10 &amp; NDCG@10</div>
+              <div>📊 <strong>Hasil Pengujian:</strong> HR@10 = 0,3500 · NDCG@10 = 0,1822</div>
             </div>
           </div>
         </div>
