@@ -148,12 +148,12 @@ menu yang sama oleh pelanggan yang sama digabung menjadi satu interaksi positif.
 ### Tabel 4.8 — Hasil Grid Search NCF
 | Konfigurasi | embed_dim | mlp_layers | Dropout | Learning Rate | Epoch Terbaik | HR@10 | NDCG@10 | Parameter |
 |---|---|---|---|---|---|---|---|---|
-| A | 32 | [64, 32, 16] | 0,2 | 0,001 | 1 | 0,3524 | 0,1835 | 33.345 |
-| B | 16 | [32, 16, 8] | 0,3 | 0,001 | 3 | 0,3488 | 0,1824 | 16.033 |
-| **C** | 32 | [64, 32] | 0,2 | 0,0005 | 5 | 0,3500 | 0,1822 | 32.833 |
+| A | 32 | [64, 32, 16] | 0,2 | 0,001 | 5 | 0,3451 | 0,1806 | 33.345 |
+| B | 16 | [32, 16, 8] | 0,3 | 0,001 | 5 | 0,3402 | 0,1772 | 16.033 |
+| **C** | 32 | [64, 32] | 0,2 | 0,0005 | 2 | 0,3439 | 0,1825 | 32.833 |
 
 > ⚠️ **PERHATIAN penting:** pada data baru, **Konfigurasi A** justru sedikit
-> lebih tinggi (0,3524) daripada C (0,3500). Selisihnya ±0,0024 — **setara
+> lebih tinggi (0,3451) daripada C (0,3439). Selisihnya ±0,0012 — **setara
 > secara statistik** (hanya 820 pengguna uji). JANGAN menulis "C menghasilkan
 > HR tertinggi". Gunakan justifikasi baru di bawah.
 
@@ -189,16 +189,13 @@ menu yang sama oleh pelanggan yang sama digabung menjadi satu interaksi positif.
 ### Tabel 4.10 — Perkembangan Training Loss per Epoch (Konfigurasi C)
 | Epoch | Training Loss | Test HR@10 | NDCG@10 | Keterangan |
 |---|---|---|---|---|
-| 1 | 0,6688 | 0,3476 | 0,1797 | - |
-| 2 | 0,5525 | 0,3451 | 0,1828 | - |
-| 3 | 0,4599 | 0,3451 | 0,1800 | - |
-| 4 | 0,4432 | 0,3415 | 0,1780 | - |
-| 5 | 0,4363 | 0,3500 | 0,1822 | **Model terbaik tersimpan** |
-| 6 | 0,4348 | 0,3402 | 0,1800 | Tidak ada peningkatan (1/5) |
-| 7 | 0,4353 | 0,3500 | 0,1828 | Tidak ada peningkatan (2/5) |
-| 8 | 0,4340 | 0,3415 | 0,1805 | Tidak ada peningkatan (3/5) |
-| 9 | 0,4330 | 0,3415 | 0,1799 | Tidak ada peningkatan (4/5) |
-| 10 | 0,4330 | 0,3439 | 0,1798 | Early stop terpenuhi (5/5) |
+| 1 | 0,6687 | 0,3366 | 0,1833 | Model terbaik tersimpan |
+| 2 | 0,5536 | 0,3439 | 0,1825 | **Model terbaik tersimpan** |
+| 3 | 0,4609 | 0,3378 | 0,1776 | Tidak ada peningkatan (1/5) |
+| 4 | 0,4447 | 0,3390 | 0,1805 | Tidak ada peningkatan (2/5) |
+| 5 | 0,4370 | 0,3439 | 0,1797 | Tidak ada peningkatan (3/5) |
+| 6 | 0,4350 | 0,3305 | 0,1771 | Tidak ada peningkatan (4/5) |
+| 7 | 0,4362 | 0,3329 | 0,1737 | Early stop terpenuhi (5/5) |
 
 **Gambar 4.1:** ganti dengan `figures/gambar_4_1_kurva_training.png`.
 
@@ -208,14 +205,14 @@ menu yang sama oleh pelanggan yang sama digabung menjadi satu interaksi positif.
 | Informasi | Nilai |
 |---|---|
 | Path file model | models/ncf_config_C.pth |
-| Epoch terbaik | 5 |
-| Training loss epoch terbaik | 0,4363 |
-| Total epoch dijalankan | 10 |
+| Epoch terbaik | 2 |
+| Training loss epoch terbaik | 0,5536 |
+| Total epoch dijalankan | 7 |
 | Jumlah pengguna | 820 |
 | Jumlah item | 140 |
 | Total parameter model | 32.833 |
-| HR@10 (data uji) | 0,3500 |
-| NDCG@10 (data uji) | 0,1822 |
+| HR@10 (data uji) | 0,3439 |
+| NDCG@10 (data uji) | 0,1825 |
 
 ---
 
@@ -277,14 +274,14 @@ cukup tanpa overfitting. Sesuaikan agar tidak mengklaim C "tertinggi" — gunaka
 
 ## 4.2.2 Analisis HR & NDCG
 - **LAMA:** HR@10 0,3670 / NDCG@10 0,1965
-- **BARU:** **HR@10 0,3500 / NDCG@10 0,1822**
+- **BARU:** **HR@10 0,3439 / NDCG@10 0,1825**
 
 **Teks siap paste:**
-> Evaluasi model final menghasilkan HR@10 sebesar 0,3500 dan NDCG@10 sebesar
-> 0,1822, dihitung dengan Leave-One-Out (1 ground truth : 99 negatif). Nilai
-> HR@10 0,3500 berarti dari setiap 100 pengguna uji, model berhasil menempatkan
-> menu yang benar-benar dipesan ke dalam Top-10 pada sekitar 35 pengguna. Nilai
-> NDCG@10 0,1822 menunjukkan kualitas urutan rekomendasi, dengan item relevan
+> Evaluasi model final menghasilkan HR@10 sebesar 0,3439 dan NDCG@10 sebesar
+> 0,1825, dihitung dengan Leave-One-Out (1 ground truth : 99 negatif). Nilai
+> HR@10 0,3439 berarti dari setiap 100 pengguna uji, model berhasil menempatkan
+> menu yang benar-benar dipesan ke dalam Top-10 pada sekitar 34 pengguna. Nilai
+> NDCG@10 0,1825 menunjukkan kualitas urutan rekomendasi, dengan item relevan
 > cenderung berada pada peringkat menengah daftar Top-10.
 
 ## 4.2.3 Analisis Kualitas Inferensi
@@ -298,8 +295,8 @@ Gunakan contoh Jenny Sanjaya: model menangkap korelasi silang antar kategori
 - [ ] Tabel 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7 — angka baru
 - [ ] Tabel 4.8 — angka baru + JANGAN klaim "C tertinggi"
 - [ ] Tabel 4.9 — sama (param 32.833 di Tabel 4.11)
-- [ ] Tabel 4.10 — 10 baris baru; Gambar 4.1 — PNG baru
-- [ ] Tabel 4.11 — model final baru (820 user, 140 item, 32.833 param)
+- [ ] Tabel 4.10 — 7 baris baru; Gambar 4.1 — PNG baru
+- [ ] Tabel 4.11 — model final baru (820 user, 140 item, 32.833 param, epoch 2)
 - [ ] 4.1.4: pengguna Jenny Sanjaya, Tabel 4.12, Gambar 4.2 baru
 - [ ] 4.1.5: Dashboard "871 / 141 / 4.908"; screenshot Gambar 4.3–4.13 diambil ulang
-- [ ] 4.2.2: HR 0,3500 / NDCG 0,1822
+- [ ] 4.2.2: HR 0,3439 / NDCG 0,1825

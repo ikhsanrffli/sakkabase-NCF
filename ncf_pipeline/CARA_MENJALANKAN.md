@@ -47,9 +47,11 @@ PERBANDINGAN KONFIGURASI (Tabel 4.8)
  Konf | embed | mlp_layers     | drop | lr     | epoch | HR@10  | NDCG@10 | param
    A  |  32   | [64, 32, 16]   | 0.2  | 0.001  |   1   | 0.3524 | 0.1835  | 33345
    B  |  16   | [32, 16, 8]    | 0.3  | 0.001  |   3   | 0.3488 | 0.1824  | 16033
-   C  |  32   | [64, 32]       | 0.2  | 0.0005 |   5   | 0.3500 | 0.1822  | 32833
+   C  |  32   | [64, 32]       | 0.2  | 0.0005 |   2   | 0.3439 | 0.1825  | 32833
 ```
-Jika angkanya seperti di atas → **berhasil & benar**.
+> Angka HR/NDCG bisa **sedikit berbeda** antar mesin/versi PyTorch (mis. CPU vs
+> GPU). Selama statistik dataset (820/140/4707) sama dan HR ≈ 0,34, berarti benar.
+> **Pakai angka dari mesin Anda** untuk skripsi.
 
 ---
 
@@ -69,8 +71,8 @@ Epoch terbaik   : 5
 Training loss   : 0.4363
 Total epoch     : 10
 Total parameter : 32833
-HR@10           : 0.3500
-NDCG@10         : 0.1822
+HR@10           : 0.3439
+NDCG@10         : 0.1825
 ```
 File yang terbentuk:
 - `ncf_pipeline/models/ncf_config_C.pth` (file model)

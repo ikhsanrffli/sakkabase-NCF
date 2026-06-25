@@ -109,7 +109,7 @@ app.add_middleware(
 @app.get("/health")
 def health():
     return {"status": "ok", "users": DATA.n_users, "items": DATA.n_items,
-            "model": config.FINAL_CONFIG, "hr_at_10": 0.3500, "ndcg_at_10": 0.1822}
+            "model": config.FINAL_CONFIG, "hr_at_10": 0.3439, "ndcg_at_10": 0.1825}
 
 
 @app.post("/recommend")

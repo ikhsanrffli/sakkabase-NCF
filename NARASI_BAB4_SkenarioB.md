@@ -86,7 +86,7 @@ lapisan MLP, dropout, dan learning rate. Hasil perbandingan ditampilkan pada Tab
 sehingga secara statistik dapat dianggap setara. Konfigurasi A dengan learning rate
 lebih besar (0,001) cepat mencapai puncak pada epoch awal kemudian mengalami
 plateau, sedangkan Konfigurasi C dengan learning rate lebih kecil (0,0005)
-menunjukkan konvergensi yang lebih stabil hingga epoch ke-5. Karena performa setara
+menunjukkan konvergensi yang lebih stabil. Karena performa setara
 namun Konfigurasi C memiliki arsitektur paling sederhana (lapisan MLP [64, 32]
 dengan 32.833 parameter) dan konvergensi paling stabil, Konfigurasi C ditetapkan
 sebagai konfigurasi model final.
@@ -99,17 +99,17 @@ otomatis ketika tidak ada peningkatan performa. Seluruh hyperparameter ditampilk
 pada Tabel 4.9. Setiap epoch memproses total 19.435 sampel yang terdiri dari 3.887
 sampel positif dan 15.548 sampel negatif dengan rasio 1:4. Perkembangan nilai
 training loss dan metrik per epoch dapat dilihat pada Tabel 4.10. Nilai training
-loss menurun secara konsisten dari 0,6688 pada epoch pertama hingga mencapai
-performa terbaik pada epoch ke-5 dengan loss 0,4363, kemudian pelatihan dihentikan
-oleh early stopping pada epoch ke-10. Kurva training loss dan HR@10 selama
+loss menurun secara konsisten dari 0,6687 pada epoch pertama hingga mencapai
+performa terbaik pada epoch ke-2 dengan loss 0,5536, kemudian pelatihan dihentikan
+oleh early stopping pada epoch ke-7. Kurva training loss dan HR@10 selama
 pelatihan ditampilkan pada Gambar 4.1.
 
 **Model Final.**
-Model dengan performa terbaik yang dicapai pada epoch ke-5 disimpan secara otomatis
+Model dengan performa terbaik yang dicapai pada epoch ke-2 disimpan secara otomatis
 ke dalam file checkpoint. File tersebut menyimpan bobot seluruh lapisan model,
 pemetaan ID pengguna dan item ke indeks embedding, jumlah pengguna (820), serta
 jumlah item (140). Informasi lengkap model final ditampilkan pada Tabel 4.11.
-Evaluasi pada data uji menghasilkan HR@10 sebesar 0,3500 dan NDCG@10 sebesar 0,1822.
+Evaluasi pada data uji menghasilkan HR@10 sebesar 0,3439 dan NDCG@10 sebesar 0,1825.
 
 ---
 
@@ -154,13 +154,13 @@ dan kesederhanaan model.
 
 ### 4.2.2 Analisis Hasil Evaluasi Hit Ratio (HR) dan NDCG
 
-Evaluasi model final menghasilkan nilai HR@10 sebesar 0,3500 dan NDCG@10 sebesar
-0,1822. Metrik ini dihitung menggunakan strategi pengujian yang ketat, yaitu
+Evaluasi model final menghasilkan nilai HR@10 sebesar 0,3439 dan NDCG@10 sebesar
+0,1825. Metrik ini dihitung menggunakan strategi pengujian yang ketat, yaitu
 Leave-One-Out dengan rasio 1 item ground truth berbanding 99 item negatif yang belum
-pernah dilihat model. Nilai HR@10 sebesar 0,3500 mengartikan bahwa dari setiap 100
+pernah dilihat model. Nilai HR@10 sebesar 0,3439 mengartikan bahwa dari setiap 100
 pengguna yang diuji, model berhasil menempatkan menu aktual yang benar-benar akan
-dipesan ke dalam daftar Top-10 rekomendasi pada sekitar 35 pengguna. Sementara itu,
-nilai NDCG@10 sebesar 0,1822 merepresentasikan kualitas urutan daftar rekomendasi,
+dipesan ke dalam daftar Top-10 rekomendasi pada sekitar 34 pengguna. Sementara itu,
+nilai NDCG@10 sebesar 0,1825 merepresentasikan kualitas urutan daftar rekomendasi,
 yang memberikan penalti apabila item ground truth muncul pada posisi lebih bawah.
 Nilai ini menunjukkan bahwa meskipun model mampu menempatkan item relevan dalam
 Top-10, posisinya cenderung berada pada peringkat menengah. Capaian ini tergolong

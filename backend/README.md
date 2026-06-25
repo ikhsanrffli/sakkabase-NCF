@@ -37,4 +37,4 @@ lalu jalankan website (`npm run dev`) di terminal lain.
    (HR@10 = 1/0) dan posisinya (NDCG@10).
 
 > Catatan: HR/NDCG untuk satu user bernilai hit (1) atau miss (0). Rata-rata
-> seluruh data uji (820 user) = HR@10 0,3500 / NDCG@10 0,1822 (hasil di skripsi).
+> seluruh data uji (820 user) = HR@10 0,3439 / NDCG@10 0,1825 (hasil di skripsi).
