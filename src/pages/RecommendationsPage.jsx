@@ -34,7 +34,7 @@ export default function RecommendationsPage({ menus, orders, users }) {
           <div className="card-header-title">
             Top-10 Rekomendasi — {selectedUser?.name || '—'}
           </div>
-          <span className="pill pill-green">NCF · HR@10 &amp; NDCG@10</span>
+          <span className="pill pill-green">Top-10 NCF</span>
         </div>
         <div className="card-body">
           {recs.length === 0 ? (
