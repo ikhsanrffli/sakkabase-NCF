@@ -20,7 +20,7 @@ export default function MyRecommendationsPage({ menus, orders }) {
     fetch(`${API_BASE}/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orders: orderCodes, evaluate: true }),
+      body: JSON.stringify({ orders: orderCodes, evaluate: true, userName: currentUser.name }),
     })
       .then(r => r.json())
       .then(d => { if (aktif) { setResp(d); setStatus('ok'); } })
