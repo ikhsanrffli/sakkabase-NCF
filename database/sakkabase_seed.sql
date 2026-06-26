@@ -7212,6 +7212,6 @@ INSERT INTO `order_details` (`order_id`,`menu_item_id`,`qty`,`price`) VALUES
 (1211,31,1,0);
 
 INSERT INTO `model_log` (`status`,`model_path`,`hr_at_10`,`ndcg_at_10`,`trained_at`) VALUES
-('ready','models/ncf_config_C.pth',0.35,0.1822,'2026-06-24 14:52:14');
+('ready','models/ncf_config_C.pth',0.3439,0.1825,'2026-06-24 14:52:14');
 
 SET FOREIGN_KEY_CHECKS = 1;

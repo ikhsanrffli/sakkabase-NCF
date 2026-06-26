@@ -52,7 +52,7 @@ npm run dev                # buka http://localhost:5173
 
 ## Yang harus Anda jelaskan ke penguji
 
-- **HR@10 / NDCG@10 satu user = hit/miss (1 atau 0).** Angka **0,3500 / 0,1822**
+- **HR@10 / NDCG@10 satu user = hit/miss (1 atau 0).** Angka **0,3439 / 0,1825**
   di skripsi adalah **rata-rata 820 user** pada evaluasi keseluruhan (Bab 4).
 - **User baru & cold-start:** model NCF tidak otomatis mengenal user baru. Sistem
   memakai *fold-in* — melatih embedding user baru dari riwayatnya tanpa melatih

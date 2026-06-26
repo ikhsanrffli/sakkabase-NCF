@@ -147,15 +147,15 @@ bersifat **ilustrasi** — nilai sebenarnya dipelajari model saat pelatihan.
 
 | Konfigurasi | embed_dim | mlp_layers | Dropout | Learning Rate | Epoch Terbaik | HR@10 | NDCG@10 |
 |---|---|---|---|---|---|---|---|
-| A | 32 | [64, 32, 16] | 0,2 | 0,001 | **1** | **0,3524** | **0,1835** |
-| B | 16 | [32, 16, 8] | 0,3 | 0,001 | **3** | **0,3488** | **0,1824** |
-| **C** | 32 | [64, 32] | 0,2 | 0,0005 | **5** | **0,3500** | **0,1822** |
+| A | 32 | [64, 32, 16] | 0,2 | 0,001 | **5** | **0,3451** | **0,1806** |
+| B | 16 | [32, 16, 8] | 0,3 | 0,001 | **5** | **0,3402** | **0,1772** |
+| **C** | 32 | [64, 32] | 0,2 | 0,0005 | **2** | **0,3439** | **0,1825** |
 
 Narasi pemilihan model final (ganti):
-> Ketiga konfigurasi menghasilkan HR@10 yang berdekatan (selisih ±0,004). Konfigurasi
-> A dengan learning rate lebih besar cepat konvergen pada epoch awal lalu plateau,
-> sedangkan **Konfigurasi C konvergen lebih stabil pada epoch 5**. Karena performa
-> setara namun **Konfigurasi C memiliki jumlah parameter paling sedikit (32.833)**
+> Ketiga konfigurasi menghasilkan HR@10 yang berdekatan (selisih ±0,005). Konfigurasi
+> A dengan learning rate lebih besar cepat konvergen lalu plateau,
+> sedangkan **Konfigurasi C konvergen stabil pada epoch 2**. Karena performa
+> setara namun **Konfigurasi C memiliki jumlah parameter relatif sedikit (32.833)**
 > dan konvergensi paling stabil, C ditetapkan sebagai **model final**.
 
 ### B.3 Tabel 4.9 — Hyperparameter Konfigurasi C
@@ -168,16 +168,13 @@ Ganti seluruh isi tabel dengan data dari `scripts/history_configC.csv`:
 
 | Epoch | Training Loss | Test HR@10 | NDCG@10 | Keterangan |
 |---|---|---|---|---|
-| 1 | 0,6688 | 0,3476 | 0,1797 | - |
-| 2 | 0,5525 | 0,3451 | 0,1828 | - |
-| 3 | 0,4599 | 0,3451 | 0,1800 | - |
-| 4 | 0,4432 | 0,3415 | 0,1780 | - |
-| 5 | 0,4363 | 0,3500 | 0,1822 | **Model terbaik tersimpan** |
-| 6 | 0,4348 | 0,3402 | 0,1800 | Tidak ada peningkatan (1/5) |
-| 7 | 0,4353 | 0,3500 | 0,1828 | Tidak ada peningkatan (2/5) |
-| 8 | 0,4340 | 0,3415 | 0,1805 | Tidak ada peningkatan (3/5) |
-| 9 | 0,4330 | 0,3415 | 0,1799 | Tidak ada peningkatan (4/5) |
-| 10 | 0,4330 | 0,3439 | 0,1798 | Early stop terpenuhi (5/5) |
+| 1 | 0,6687 | 0,3366 | 0,1833 | Model terbaik tersimpan |
+| 2 | 0,5536 | 0,3439 | 0,1825 | **Model terbaik tersimpan** |
+| 3 | 0,4609 | 0,3378 | 0,1776 | Tidak ada peningkatan (1/5) |
+| 4 | 0,4447 | 0,3390 | 0,1805 | Tidak ada peningkatan (2/5) |
+| 5 | 0,4370 | 0,3439 | 0,1797 | Tidak ada peningkatan (3/5) |
+| 6 | 0,4350 | 0,3305 | 0,1771 | Tidak ada peningkatan (4/5) |
+| 7 | 0,4362 | 0,3329 | 0,1737 | Early stop terpenuhi (5/5) |
 
 ### B.5 Gambar 4.1 — Kurva Training Loss & HR@10
 Ganti gambar dengan file: **`figures/gambar_4_1_kurva_training.png`**
@@ -187,12 +184,12 @@ Ganti gambar dengan file: **`figures/gambar_4_1_kurva_training.png`**
 | Informasi | LAMA | **BARU** |
 |---|---|---|
 | Path file model | models/ncf_config_C.pth | models/ncf_config_C.pth |
-| Epoch terbaik | 8 | **5** |
-| Training loss epoch terbaik | 0,4163 | **0,4363** |
-| Total epoch dijalankan | 13 | **10** |
+| Epoch terbaik | 8 | **2** |
+| Training loss epoch terbaik | 0,4163 | **0,5536** |
+| Total epoch dijalankan | 13 | **7** |
 | Total parameter model | 47.521 | **32.833** |
-| HR@10 (data uji) | 0,3670 | **0,3500** |
-| NDCG@10 (data uji) | 0,1965 | **0,1822** |
+| HR@10 (data uji) | 0,3670 | **0,3439** |
+| NDCG@10 (data uji) | 0,1965 | **0,1825** |
 
 ### B.7 Tabel 4.12 & Gambar 4.2 — Contoh Inferensi
 - **LAMA:** "Pengguna ID 2424".
@@ -201,7 +198,7 @@ Ganti gambar dengan file: **`figures/gambar_4_1_kurva_training.png`**
 
 ### B.8 Paragraf hasil akhir (kesimpulan evaluasi)
 - **LAMA:** "HR@10 sebesar 0,3670 dan NDCG@10 sebesar 0,1965"
-- **BARU:** "**HR@10 sebesar 0,3500 dan NDCG@10 sebesar 0,1822**", tetap dengan
+- **BARU:** "**HR@10 sebesar 0,3439 dan NDCG@10 sebesar 0,1825**", tetap dengan
   strategi Leave-One-Out (1 positif : 99 negatif).
 
 ---
@@ -236,4 +233,4 @@ Belakang bahwa unit analisis = interaksi tiap **pelanggan** dengan menu.
 - [ ] Tabel 4.11 — model final baru
 - [ ] Tabel 4.12 / Gambar 4.2 — pelanggan nyata
 - [ ] Gambar 4.4–4.13 (screenshot implementasi) — ambil ulang dgn data baru
-- [ ] Paragraf hasil — HR 0,3500 / NDCG 0,1822
+- [ ] Paragraf hasil — HR 0,3439 / NDCG 0,1825

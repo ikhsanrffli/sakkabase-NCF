@@ -26,7 +26,7 @@ python predict.py "Rendi Ramadhan"   # Top-10 utk satu pelanggan
 
 ## Hasil yang diharapkan (reproducible, seed 42)
 - Statistik: 820 pengguna, 140 item, 4.707 interaksi, 3.887 latih, 820 uji
-- Konfigurasi final C: **HR@10 = 0,3500**, **NDCG@10 = 0,1822**, 32.833 parameter, epoch terbaik 5
+- Konfigurasi final C: **HR@10 ≈ 0,3439**, **NDCG@10 ≈ 0,1825**, 32.833 parameter (angka bisa sedikit beda per mesin/versi PyTorch)
 
 ## ⚠️ Perbedaan utama vs versi lama Anda
 Yang membuat hasil benar untuk Skenario B ada di `config.py` dan `dataset.py`:

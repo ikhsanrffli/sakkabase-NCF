@@ -35,8 +35,8 @@ OUTDIR = os.path.join(ROOT, "database")
 OUT = os.path.join(OUTDIR, "sakkabase_seed.sql")
 
 # Hasil evaluasi model final (Konfigurasi C, Skenario B) — untuk model_log
-HR_AT_10 = 0.3500
-NDCG_AT_10 = 0.1822
+HR_AT_10 = 0.3439
+NDCG_AT_10 = 0.1825
 
 
 def parse_initdata():
