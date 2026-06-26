@@ -1,15 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getNCFRecommendations, formatScore } from '../utils/ncfUtils';
+import { API_BASE } from '../utils/api';
 
 export default function RecommendationsPage({ menus, orders, users }) {
   const regUsers = users.filter(u => u.role === 'user');
   const [selectedUserId, setSelectedUserId] = useState(regUsers[0]?.id || '');
-
-  const recs = selectedUserId
-    ? getNCFRecommendations(selectedUserId, menus, orders, 10)
-    : [];
+  const [recs, setRecs] = useState([]);
 
   const selectedUser = users.find(u => u.id === selectedUserId);
+
+  // Ambil Top-10 dari model NCF (backend) untuk user terpilih; fallback lokal bila offline.
+  useEffect(() => {
+    if (!selectedUserId) { setRecs([]); return; }
+    const codes = orders.filter(o => o.userId === selectedUserId).map(o => o.menuId);
+    let aktif = true;
+    if (codes.length === 0) {
+      setRecs(getNCFRecommendations(selectedUserId, menus, orders, 10));
+      return;
+    }
+    fetch(`${API_BASE}/recommend`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orders: codes, evaluate: false }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (!aktif) return;
+        if (d?.top10?.length) {
+          setRecs(d.top10.map(r => ({ id: r.menuId, name: r.name, category: r.category, icon: r.icon, score: r.score })));
+        } else {
+          setRecs(getNCFRecommendations(selectedUserId, menus, orders, 10));
+        }
+      })
+      .catch(() => { if (aktif) setRecs(getNCFRecommendations(selectedUserId, menus, orders, 10)); });
+    return () => { aktif = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUserId, orders]);
 
   return (
     <>

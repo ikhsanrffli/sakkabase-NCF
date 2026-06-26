@@ -1,12 +1,18 @@
-# Panduan Integrasi MySQL (Write-through)
+# Panduan Integrasi MySQL (Tahap 2 — Integrasi Penuh)
 
-Setiap **registrasi user baru** dan **pemesanan** di website kini **disimpan ke
-MySQL** lewat backend FastAPI. Data historis (871 pelanggan dll) sudah ada dari
+Website kini **membaca DAN menulis** seluruh data (users, menus, orders) **dari/ke
+MySQL** lewat backend FastAPI. Data historis sudah ada dari
 `database/sakkabase_seed.sql`.
 
-> Catatan lingkup: ini **write-through** — data baru DITULIS ke MySQL. Tampilan
-> aplikasi masih memakai data bawaan; yang penting **data tersimpan permanen di DB**
-> dan bisa Anda tunjukkan di phpMyAdmin.
+> **Tahap 2 (integrasi penuh):** aplikasi memuat daftar pengguna, menu, dan
+> pesanan langsung dari MySQL. Registrasi & pemesanan baru ditulis ke MySQL dan
+> **bertahan setelah refresh** (bisa login lagi). Bila backend/MySQL mati,
+> aplikasi otomatis **fallback** ke data bawaan (`initialData.js`) agar tetap jalan.
+
+**Yang dibaca dari MySQL saat aplikasi dibuka:**
+- Tabel `users` → halaman Login & Data Pengguna
+- Tabel `menu_items` → Data Menu, Lihat Menu, Pesan Menu
+- Tabel `orders` + `order_details` → Data Pemesanan, Riwayat, Rekomendasi
 
 ---
 
@@ -56,7 +62,11 @@ DATABASE_URL / MySQL menyala.
    - Tabel **`users`** → ada baris baru dengan `source = registered`.
    - Tabel **`orders`** & **`order_details`** → ada pesanan baru.
 
-Atau cek via API: `http://localhost:8000/db/users` (20 user terbaru).
+Atau cek via API: `http://localhost:8000/db/users`.
+
+5. **Bukti Tahap 2:** setelah registrasi, **refresh** browser (F5) lalu login lagi
+   dengan akun itu — **masih bisa** (karena dibaca dari MySQL). Halaman Data
+   Pengguna (admin) juga menampilkan user dari database.
 
 ---
 
@@ -64,9 +74,11 @@ Atau cek via API: `http://localhost:8000/db/users` (20 user terbaru).
 | Method | Endpoint | Fungsi |
 |---|---|---|
 | GET | `/db/health` | Status koneksi DB |
+| GET | `/db/users` | Baca semua user (login & Data Pengguna) |
+| GET | `/db/menus` | Baca semua menu (Data Menu, katalog) |
+| GET | `/db/orders` | Baca semua pesanan (Data Pemesanan, riwayat) |
 | POST | `/db/register` | Simpan user baru (otomatis dari halaman Register) |
 | POST | `/db/order` | Simpan pesanan (otomatis saat checkout) |
-| GET | `/db/users` | Lihat user terbaru (verifikasi) |
 
 ## Catatan
 - Penyimpanan bersifat **best-effort**: bila backend/MySQL mati, website tetap
