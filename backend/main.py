@@ -169,3 +169,91 @@ def recommend(req: RecRequest):
 
     return {"top10": top10, "evaluation": evaluation,
             "historyUsed": history, "groundTruth": ground_truth}
+
+
+# ============================================================
+#  Persistensi MySQL (write-through): registrasi & pemesanan
+# ============================================================
+from datetime import date as _date, datetime as _dt   # noqa: E402
+from db import get_session, User, MenuItem, Order, OrderDetail   # noqa: E402
+
+
+class RegisterReq(BaseModel):
+    nama_lengkap: str
+    username: str
+    password: str
+
+
+class OrderReq(BaseModel):
+    username: str
+    menuCodes: list[str]
+    tanggal: str | None = None
+
+
+@app.get("/db/health")
+def db_health():
+    try:
+        s = get_session()
+        n = s.query(User).count()
+        s.close()
+        return {"status": "ok", "users_in_db": n}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
+@app.post("/db/register")
+def db_register(req: RegisterReq):
+    s = get_session()
+    try:
+        if s.query(User).filter(User.username == req.username).first():
+            return {"ok": False, "message": "Username sudah digunakan."}
+        u = User(nama_lengkap=req.nama_lengkap, username=req.username,
+                 password=req.password, role="user", source="registered")
+        s.add(u); s.commit(); s.refresh(u)
+        return {"ok": True, "id": u.id, "username": u.username, "name": u.nama_lengkap}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/order")
+def db_order(req: OrderReq):
+    s = get_session()
+    try:
+        u = s.query(User).filter(User.username == req.username).first()
+        if not u:
+            return {"ok": False, "message": "User tidak ditemukan di database."}
+        tgl = _date.today()
+        if req.tanggal:
+            try:
+                tgl = _dt.strptime(req.tanggal, "%Y-%m-%d").date()
+            except Exception:
+                pass
+        order = Order(user_id=u.id, total=0, tanggal=tgl)
+        s.add(order); s.flush()      # dapatkan order.id sebelum commit
+        saved = 0
+        for code in req.menuCodes:
+            mi = s.query(MenuItem).filter(MenuItem.item_id == code).first()
+            if mi:
+                s.add(OrderDetail(order_id=order.id, menu_item_id=mi.id, qty=1, price=0))
+                saved += 1
+        s.commit()
+        return {"ok": True, "orderId": order.id, "itemsSaved": saved}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.get("/db/users")
+def db_users(limit: int = 20):
+    s = get_session()
+    try:
+        rows = s.query(User).order_by(User.id.desc()).limit(limit).all()
+        return [{"id": u.id, "name": u.nama_lengkap, "username": u.username,
+                 "role": u.role, "source": u.source} for u in rows]
+    finally:
+        s.close()

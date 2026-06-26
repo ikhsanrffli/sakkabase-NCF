@@ -5,3 +5,6 @@ pandas
 scikit-learn
 numpy
 openpyxl
+sqlalchemy
+pymysql
+cryptography

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react';
 import { USERS_DB } from '../data/initialData';
+import { persistUserToDB } from '../utils/api';
 
 const AuthContext = createContext(null);
 
@@ -25,6 +26,7 @@ export function AuthProvider({ children }) {
       return { success: false, message: 'Username sudah digunakan.' };
     const newUser = { id: 'u' + Date.now(), username, password, role: 'user', name };
     setUsers(prev => [...prev, newUser]);
+    persistUserToDB(newUser); // simpan ke MySQL (best-effort, tak memblokir)
     return { success: true };
   }
 

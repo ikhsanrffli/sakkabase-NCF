@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { persistOrderToDB } from '../utils/api';
 
 // Kategori yang relevan untuk pemesanan (exclude Barber, Tambahan, Lainnya)
 const FOOD_DRINK_CATS = [
@@ -65,6 +66,8 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
       date: today,
     }));
     setOrders(prev => [...prev, ...newOrders]);
+    // simpan pesanan ke MySQL (best-effort): kirim kode menu sesuai urutan keranjang
+    persistOrderToDB(currentUser.username, cart.map(c => c.id), today);
     setSuccessItems([...cart]);
     setCart([]);
     setShowCart(false);
