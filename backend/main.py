@@ -249,11 +249,52 @@ def db_order(req: OrderReq):
 
 
 @app.get("/db/users")
-def db_users(limit: int = 20):
+def db_users():
+    """Seluruh user (untuk autentikasi & halaman admin). id dikembalikan string
+    agar kompatibel dengan skema id aplikasi."""
     s = get_session()
     try:
-        rows = s.query(User).order_by(User.id.desc()).limit(limit).all()
-        return [{"id": u.id, "name": u.nama_lengkap, "username": u.username,
-                 "role": u.role, "source": u.source} for u in rows]
+        rows = s.query(User).order_by(User.id).all()
+        return [{"id": str(u.id), "username": u.username, "password": u.password,
+                 "role": u.role, "name": u.nama_lengkap, "source": u.source}
+                for u in rows]
+    finally:
+        s.close()
+
+
+@app.get("/db/menus")
+def db_menus():
+    """Seluruh menu (dari tabel menu_items). icon diambil dari metadata aplikasi."""
+    s = get_session()
+    try:
+        rows = s.query(MenuItem).order_by(MenuItem.item_id).all()
+        out = []
+        for m in rows:
+            meta = MENU.get(m.item_id, {})
+            out.append({"id": m.item_id, "name": m.nama_menu,
+                        "category": m.kategori or "Lainnya",
+                        "icon": meta.get("icon", "🍽️")})
+        return out
+    finally:
+        s.close()
+
+
+@app.get("/db/orders")
+def db_orders():
+    """Seluruh pesanan (gabungan orders + order_details + users + menu_items),
+    satu baris per item — sesuai bentuk yang dipakai aplikasi."""
+    s = get_session()
+    try:
+        q = (s.query(OrderDetail, Order, MenuItem, User)
+             .join(Order, OrderDetail.order_id == Order.id)
+             .join(MenuItem, OrderDetail.menu_item_id == MenuItem.id)
+             .join(User, Order.user_id == User.id)
+             .order_by(OrderDetail.id))
+        out = []
+        for od, o, m, u in q.all():
+            out.append({"id": f"ORD{od.id:05d}", "userId": str(o.user_id),
+                        "userName": u.nama_lengkap, "menuId": m.item_id,
+                        "menuName": m.nama_menu, "date": str(o.tanggal)})
+        return out
     finally:
         s.close()

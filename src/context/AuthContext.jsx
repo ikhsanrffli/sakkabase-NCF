@@ -1,12 +1,20 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { USERS_DB } from '../data/initialData';
-import { persistUserToDB } from '../utils/api';
+import { persistUserToDB, API_BASE } from '../utils/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [users, setUsers] = useState(USERS_DB);
+
+  // Tahap 2: muat daftar user dari MySQL (fallback ke USERS_DB bila backend mati).
+  useEffect(() => {
+    fetch(`${API_BASE}/db/users`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d) && d.length) setUsers(d); })
+      .catch(() => {});
+  }, []);
 
   function login(username, password, role) {
     const found = users.find(
