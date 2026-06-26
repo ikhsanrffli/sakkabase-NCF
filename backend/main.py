@@ -98,6 +98,7 @@ def fold_in(pos_idx, epochs=120, lr=0.05, neg_ratio=4):
 class RecRequest(BaseModel):
     orders: list[str]            # kode menu, urut kronologis (terakhir = ground truth)
     evaluate: bool = True        # True: sembunyikan pesanan terakhir untuk uji HR/NDCG
+    userName: str | None = None  # nama pelanggan; bila dikenal model -> pakai embedding asli
 
 
 app = FastAPI(title="Sakka Base NCF API")
@@ -134,9 +135,20 @@ def recommend(req: RecRequest):
         history = codes
 
     pos_idx = [DATA.i2i[c] for c in history]
-    user_vec = fold_in(pos_idx)
 
-    # kandidat = semua item yang TIDAK dipakai untuk fold-in
+    # Pilih vektor pengguna:
+    #  - user LAMA (ada di model) -> embedding asli hasil training (skor lebih akurat)
+    #  - user BARU (tak dikenal)  -> fold-in dari riwayatnya (cold-start)
+    real_idx = DATA.u2i.get(req.userName) if req.userName else None
+    if real_idx is not None:
+        with torch.no_grad():
+            user_vec = MODEL.user_emb.weight[real_idx].detach().clone()
+        method = "embedding"
+    else:
+        user_vec = fold_in(pos_idx)
+        method = "foldin"
+
+    # kandidat = semua item yang TIDAK ada di riwayat pengguna
     hist_set = set(pos_idx)
     cand = [j for j in range(DATA.n_items) if j not in hist_set]
     with torch.no_grad():
@@ -167,7 +179,7 @@ def recommend(req: RecRequest):
             "ndcg_at_10": round(ndcg, 4),
         }
 
-    return {"top10": top10, "evaluation": evaluation,
+    return {"top10": top10, "evaluation": evaluation, "method": method,
             "historyUsed": history, "groundTruth": ground_truth}
 
 

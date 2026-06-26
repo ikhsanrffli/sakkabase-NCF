@@ -21,7 +21,7 @@ export default function RecommendationsPage({ menus, orders, users }) {
     fetch(`${API_BASE}/recommend`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orders: codes, evaluate: false }),
+      body: JSON.stringify({ orders: codes, evaluate: false, userName: selectedUser?.name }),
     })
       .then(r => r.json())
       .then(d => {
