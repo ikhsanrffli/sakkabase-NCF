@@ -246,13 +246,18 @@ def db_order(req: OrderReq):
         order = Order(user_id=u.id, total=0, tanggal=tgl)
         s.add(order); s.flush()      # dapatkan order.id sebelum commit
         saved = 0
+        total = 0
         for code in req.menuCodes:
             mi = s.query(MenuItem).filter(MenuItem.item_id == code).first()
             if mi:
-                s.add(OrderDetail(order_id=order.id, menu_item_id=mi.id, qty=1, price=0))
+                harga = mi.price or 0           # harga menu dari DB
+                s.add(OrderDetail(order_id=order.id, menu_item_id=mi.id,
+                                  qty=1, price=harga))
+                total += harga
                 saved += 1
+        order.total = total                     # total belanja = jumlah harga item
         s.commit()
-        return {"ok": True, "orderId": order.id, "itemsSaved": saved}
+        return {"ok": True, "orderId": order.id, "itemsSaved": saved, "total": total}
     except Exception as e:
         s.rollback()
         return {"ok": False, "message": str(e)}
