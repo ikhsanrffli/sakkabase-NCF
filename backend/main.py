@@ -285,7 +285,8 @@ def db_menus():
             meta = MENU.get(m.item_id, {})
             out.append({"id": m.item_id, "name": m.nama_menu,
                         "category": m.kategori or "Lainnya",
-                        "icon": meta.get("icon", "🍽️")})
+                        "icon": meta.get("icon", "🍽️"),
+                        "price": m.price or 0})
         return out
     finally:
         s.close()
