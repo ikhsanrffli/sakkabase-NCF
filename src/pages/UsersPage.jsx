@@ -147,12 +147,16 @@ export default function UsersPage({ users, setUsers }) {
             <label>Username</label>
             <input className="form-input" value={form.username} onChange={e => setForm(f => ({ ...f, username: e.target.value }))} placeholder="Username" />
           </div>
-          {modal === 'add' && (
-            <div className="form-group">
-              <label>Password</label>
-              <input className="form-input" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Password" />
-            </div>
-          )}
+          <div className="form-group">
+            <label>Password {modal !== 'add' && <span style={{ color: 'var(--gray3)', fontWeight: 400 }}>(kosongkan bila tidak diubah)</span>}</label>
+            <input
+              className="form-input"
+              type="password"
+              value={form.password}
+              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              placeholder={modal === 'add' ? 'Password' : 'Password baru (opsional)'}
+            />
+          </div>
           {formError && <p style={{ color: 'var(--danger)', fontSize: '.78rem', marginBottom: '.5rem' }}>⚠️ {formError}</p>}
           <div className="modal-actions">
             <button className="btn btn-ghost" onClick={() => setModal(null)} disabled={saving}>Batal</button>
