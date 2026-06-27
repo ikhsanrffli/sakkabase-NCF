@@ -202,6 +202,23 @@ class OrderReq(BaseModel):
     tanggal: str | None = None
 
 
+class UserAddReq(BaseModel):
+    nama_lengkap: str
+    username: str
+    password: str
+
+
+class UserUpdateReq(BaseModel):
+    id: int
+    nama_lengkap: str
+    username: str
+    password: str | None = None   # None/kosong = password tidak diubah
+
+
+class UserDeleteReq(BaseModel):
+    id: int
+
+
 @app.get("/db/health")
 def db_health():
     try:
@@ -223,6 +240,86 @@ def db_register(req: RegisterReq):
                  password=req.password, role="user", source="registered")
         s.add(u); s.commit(); s.refresh(u)
         return {"ok": True, "id": u.id, "username": u.username, "name": u.nama_lengkap}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/user/add")
+def db_user_add(req: UserAddReq):
+    """Tambah pengguna baru dari halaman admin (tersimpan permanen ke MySQL)."""
+    s = get_session()
+    try:
+        if not req.nama_lengkap.strip() or not req.username.strip():
+            return {"ok": False, "message": "Nama dan username wajib diisi."}
+        if not req.password.strip():
+            return {"ok": False, "message": "Password wajib diisi."}
+        if s.query(User).filter(User.username == req.username).first():
+            return {"ok": False, "message": "Username sudah digunakan."}
+        u = User(nama_lengkap=req.nama_lengkap.strip(), username=req.username.strip(),
+                 password=req.password.strip(), role="user", source="registered")
+        s.add(u); s.commit(); s.refresh(u)
+        return {"ok": True, "id": u.id, "username": u.username, "name": u.nama_lengkap}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/user/update")
+def db_user_update(req: UserUpdateReq):
+    """Ubah nama/username (dan opsional password) pengguna di MySQL."""
+    s = get_session()
+    try:
+        u = s.query(User).filter(User.id == req.id).first()
+        if not u:
+            return {"ok": False, "message": "Pengguna tidak ditemukan."}
+        if not req.nama_lengkap.strip() or not req.username.strip():
+            return {"ok": False, "message": "Nama dan username wajib diisi."}
+        # cegah username bentrok dengan user lain
+        bentrok = (s.query(User)
+                   .filter(User.username == req.username.strip(), User.id != req.id)
+                   .first())
+        if bentrok:
+            return {"ok": False, "message": "Username sudah digunakan."}
+        u.nama_lengkap = req.nama_lengkap.strip()
+        u.username = req.username.strip()
+        if req.password and req.password.strip():
+            u.password = req.password.strip()
+        s.commit()
+        return {"ok": True, "id": u.id}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/user/delete")
+def db_user_delete(req: UserDeleteReq):
+    """Hapus pengguna BESERTA seluruh riwayat pesanannya (orders + order_details)."""
+    s = get_session()
+    try:
+        u = s.query(User).filter(User.id == req.id).first()
+        if not u:
+            return {"ok": False, "message": "Pengguna tidak ditemukan."}
+        if u.role == "admin":
+            return {"ok": False, "message": "Akun admin tidak boleh dihapus."}
+        # hapus detail & header pesanan milik user ini lebih dulu (jaga konsistensi FK)
+        order_ids = [o.id for o in s.query(Order).filter(Order.user_id == u.id).all()]
+        if order_ids:
+            (s.query(OrderDetail)
+             .filter(OrderDetail.order_id.in_(order_ids))
+             .delete(synchronize_session=False))
+            (s.query(Order)
+             .filter(Order.id.in_(order_ids))
+             .delete(synchronize_session=False))
+        s.delete(u)
+        s.commit()
+        return {"ok": True, "id": req.id, "ordersDeleted": len(order_ids)}
     except Exception as e:
         s.rollback()
         return {"ok": False, "message": str(e)}

@@ -27,3 +27,34 @@ export function persistOrderToDB(username, menuCodes, tanggal) {
     .then(r => r.json())
     .catch(() => null);
 }
+
+/** Helper POST JSON ke backend; mengembalikan {ok:false} bila backend offline. */
+function postJSON(path, body) {
+  return fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+    .then(r => r.json())
+    .catch(() => ({ ok: false, message: 'Backend tidak aktif. Jalankan FastAPI lalu coba lagi.' }));
+}
+
+/** Admin: tambah pengguna ke MySQL. */
+export function addUserToDB(user) {
+  return postJSON('/db/user/add', {
+    nama_lengkap: user.name, username: user.username, password: user.password,
+  });
+}
+
+/** Admin: ubah pengguna di MySQL. password kosong = tidak diubah. */
+export function updateUserInDB(user) {
+  return postJSON('/db/user/update', {
+    id: Number(user.id), nama_lengkap: user.name,
+    username: user.username, password: user.password || null,
+  });
+}
+
+/** Admin: hapus pengguna + riwayat pesanannya di MySQL. */
+export function deleteUserFromDB(id) {
+  return postJSON('/db/user/delete', { id: Number(id) });
+}

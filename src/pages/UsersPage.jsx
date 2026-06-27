@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Modal, SearchBar, EmptyState, Pill, useConfirm } from '../components/UI';
+import { addUserToDB, updateUserInDB, deleteUserFromDB } from '../utils/api';
 
 const PER_PAGE = 25; // jumlah pengguna yang ditampilkan per halaman
 
@@ -9,6 +10,7 @@ export default function UsersPage({ users, setUsers }) {
   const [modal, setModal] = useState(null); // null | 'add' | {edit: user}
   const [form, setForm] = useState({ name: '', username: '', password: '' });
   const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   const regUsers = users.filter(u => u.role === 'user');
@@ -37,15 +39,24 @@ export default function UsersPage({ users, setUsers }) {
     setModal({ edit: user });
   }
 
-  function handleSave() {
+  async function handleSave() {
     const { name, username, password } = form;
     if (!name.trim() || !username.trim()) { setFormError('Nama dan username wajib diisi.'); return; }
+    setFormError('');
+    setSaving(true);
 
     if (modal === 'add') {
-      if (!password.trim()) { setFormError('Password wajib diisi.'); return; }
-      if (users.find(u => u.username === username.trim())) { setFormError('Username sudah digunakan.'); return; }
-      setUsers(prev => [...prev, { id: 'u' + Date.now(), username: username.trim(), password: password.trim(), role: 'user', name: name.trim() }]);
+      if (!password.trim()) { setFormError('Password wajib diisi.'); setSaving(false); return; }
+      if (users.find(u => u.username === username.trim())) { setFormError('Username sudah digunakan.'); setSaving(false); return; }
+      const res = await addUserToDB({ name: name.trim(), username: username.trim(), password: password.trim() });
+      setSaving(false);
+      if (!res || !res.ok) { setFormError(res?.message || 'Gagal menyimpan ke database.'); return; }
+      // pakai id asli dari MySQL agar Edit/Hapus berikutnya tepat sasaran
+      setUsers(prev => [...prev, { id: String(res.id), username: username.trim(), password: password.trim(), role: 'user', name: name.trim() }]);
     } else {
+      const res = await updateUserInDB({ id: modal.edit.id, name: name.trim(), username: username.trim(), password: password.trim() });
+      setSaving(false);
+      if (!res || !res.ok) { setFormError(res?.message || 'Gagal menyimpan ke database.'); return; }
       setUsers(prev => prev.map(u =>
         u.id === modal.edit.id ? { ...u, name: name.trim(), username: username.trim() } : u
       ));
@@ -55,7 +66,10 @@ export default function UsersPage({ users, setUsers }) {
 
   async function handleDelete(user) {
     const ok = await confirm(`Hapus pengguna "${user.name}"? Data pemesanannya juga akan ikut terhapus.`);
-    if (ok) setUsers(prev => prev.filter(u => u.id !== user.id));
+    if (!ok) return;
+    const res = await deleteUserFromDB(user.id);
+    if (!res || !res.ok) { alert(res?.message || 'Gagal menghapus dari database.'); return; }
+    setUsers(prev => prev.filter(u => u.id !== user.id));
   }
 
   return (
@@ -141,8 +155,10 @@ export default function UsersPage({ users, setUsers }) {
           )}
           {formError && <p style={{ color: 'var(--danger)', fontSize: '.78rem', marginBottom: '.5rem' }}>⚠️ {formError}</p>}
           <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={() => setModal(null)}>Batal</button>
-            <button className="btn btn-primary" onClick={handleSave}>Simpan</button>
+            <button className="btn btn-ghost" onClick={() => setModal(null)} disabled={saving}>Batal</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Menyimpan…' : 'Simpan'}
+            </button>
           </div>
         </Modal>
       )}
