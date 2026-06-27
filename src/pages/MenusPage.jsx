@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import { Modal, SearchBar, EmptyState, Pill, useConfirm } from '../components/UI';
 import { MENU_CATEGORIES, CATEGORY_ICONS } from '../data/initialData';
+import { addMenuToDB, updateMenuInDB, deleteMenuFromDB } from '../utils/api';
+import { menuPrice, formatRupiah } from '../utils/menuInfo';
 
 export default function MenusPage({ menus, setMenus }) {
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ id: '', name: '', category: MENU_CATEGORIES[0] });
+  const [form, setForm] = useState({ id: '', name: '', category: MENU_CATEGORIES[0], price: '' });
   const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   const filtered = menus.filter(m =>
@@ -16,34 +19,42 @@ export default function MenusPage({ menus, setMenus }) {
   );
 
   function openAdd() {
-    setForm({ id: '', name: '', category: MENU_CATEGORIES[0] });
+    setForm({ id: '', name: '', category: MENU_CATEGORIES[0], price: '' });
     setFormError('');
     setModal('add');
   }
 
   function openEdit(menu) {
-    setForm({ id: menu.id, name: menu.name, category: menu.category });
+    setForm({ id: menu.id, name: menu.name, category: menu.category, price: menuPrice(menu) });
     setFormError('');
     setModal({ edit: menu });
   }
 
-  function handleSave() {
-    const { id, name, category } = form;
+  async function handleSave() {
+    const { id, name, category, price } = form;
     if (!name.trim()) { setFormError('Nama menu wajib diisi.'); return; }
+    const harga = Math.max(0, parseInt(price, 10) || 0);
+    setFormError('');
+    setSaving(true);
 
     if (modal === 'add') {
-      if (!id.trim()) { setFormError('ID item wajib diisi.'); return; }
-      if (menus.find(m => m.id === id.trim().toUpperCase())) { setFormError('ID item sudah digunakan.'); return; }
+      if (!id.trim()) { setFormError('ID item wajib diisi.'); setSaving(false); return; }
+      const code = id.trim().toUpperCase();
+      if (menus.find(m => m.id === code)) { setFormError('ID item sudah digunakan.'); setSaving(false); return; }
+      const res = await addMenuToDB({ id: code, name: name.trim(), category, price: harga });
+      setSaving(false);
+      if (!res || !res.ok) { setFormError(res?.message || 'Gagal menyimpan ke database.'); return; }
       setMenus(prev => [...prev, {
-        id: id.trim().toUpperCase(),
-        name: name.trim(),
-        category,
-        icon: CATEGORY_ICONS[category] || '🍽️'
+        id: code, name: name.trim(), category, price: harga,
+        icon: CATEGORY_ICONS[category] || '🍽️',
       }]);
     } else {
+      const res = await updateMenuInDB({ id: modal.edit.id, name: name.trim(), category, price: harga });
+      setSaving(false);
+      if (!res || !res.ok) { setFormError(res?.message || 'Gagal menyimpan ke database.'); return; }
       setMenus(prev => prev.map(m =>
         m.id === modal.edit.id
-          ? { ...m, name: name.trim(), category, icon: CATEGORY_ICONS[category] || '🍽️' }
+          ? { ...m, name: name.trim(), category, price: harga, icon: CATEGORY_ICONS[category] || '🍽️' }
           : m
       ));
     }
@@ -52,7 +63,10 @@ export default function MenusPage({ menus, setMenus }) {
 
   async function handleDelete(menu) {
     const ok = await confirm(`Hapus menu "${menu.name}"?`);
-    if (ok) setMenus(prev => prev.filter(m => m.id !== menu.id));
+    if (!ok) return;
+    const res = await deleteMenuFromDB(menu.id);
+    if (!res || !res.ok) { alert(res?.message || 'Gagal menghapus dari database.'); return; }
+    setMenus(prev => prev.filter(m => m.id !== menu.id));
   }
 
   return (
@@ -71,17 +85,18 @@ export default function MenusPage({ menus, setMenus }) {
         <div className="table-wrapper">
           <table className="data-table">
             <thead>
-              <tr><th>No</th><th>ID Item</th><th>Nama Menu</th><th>Kategori</th><th>Aksi</th></tr>
+              <tr><th>No</th><th>ID Item</th><th>Nama Menu</th><th>Kategori</th><th>Harga</th><th>Aksi</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={5}><EmptyState icon="🍽️" message="Tidak ada menu ditemukan." /></td></tr>
+                <tr><td colSpan={6}><EmptyState icon="🍽️" message="Tidak ada menu ditemukan." /></td></tr>
               ) : filtered.map((m, i) => (
                 <tr key={m.id}>
                   <td style={{ color: 'var(--gray3)' }}>{i + 1}</td>
                   <td><span className="mono">{m.id}</span></td>
                   <td><span style={{ marginRight: '.4rem' }}>{m.icon}</span><strong>{m.name}</strong></td>
                   <td><Pill variant="gold">{m.category}</Pill></td>
+                  <td style={{ fontWeight: 600, color: 'var(--green)' }}>{formatRupiah(menuPrice(m))}</td>
                   <td>
                     <button className="btn btn-outline btn-sm" onClick={() => openEdit(m)}>Edit</button>
                     <button className="btn btn-danger btn-sm" style={{ marginLeft: '.4rem' }} onClick={() => handleDelete(m)}>Hapus</button>
@@ -115,10 +130,24 @@ export default function MenusPage({ menus, setMenus }) {
               {MENU_CATEGORIES.map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
+          <div className="form-group">
+            <label>Harga (Rp)</label>
+            <input
+              className="form-input"
+              type="number"
+              min="0"
+              step="1000"
+              value={form.price}
+              onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
+              placeholder="Contoh: 25000"
+            />
+          </div>
           {formError && <p style={{ color: 'var(--danger)', fontSize: '.78rem', marginBottom: '.5rem' }}>⚠️ {formError}</p>}
           <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={() => setModal(null)}>Batal</button>
-            <button className="btn btn-primary" onClick={handleSave}>Simpan</button>
+            <button className="btn btn-ghost" onClick={() => setModal(null)} disabled={saving}>Batal</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Menyimpan…' : 'Simpan'}
+            </button>
           </div>
         </Modal>
       )}

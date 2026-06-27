@@ -219,6 +219,24 @@ class UserDeleteReq(BaseModel):
     id: int
 
 
+class MenuAddReq(BaseModel):
+    item_id: str
+    nama_menu: str
+    kategori: str
+    price: int = 0
+
+
+class MenuUpdateReq(BaseModel):
+    item_id: str            # kode menu (tidak diubah, sebagai kunci)
+    nama_menu: str
+    kategori: str
+    price: int = 0
+
+
+class MenuDeleteReq(BaseModel):
+    item_id: str
+
+
 @app.get("/db/health")
 def db_health():
     try:
@@ -320,6 +338,76 @@ def db_user_delete(req: UserDeleteReq):
         s.delete(u)
         s.commit()
         return {"ok": True, "id": req.id, "ordersDeleted": len(order_ids)}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/menu/add")
+def db_menu_add(req: MenuAddReq):
+    """Tambah menu baru ke MySQL (tersimpan permanen)."""
+    s = get_session()
+    try:
+        if not req.item_id.strip() or not req.nama_menu.strip():
+            return {"ok": False, "message": "Kode (ID Item) dan nama menu wajib diisi."}
+        code = req.item_id.strip().upper()
+        if s.query(MenuItem).filter(MenuItem.item_id == code).first():
+            return {"ok": False, "message": "Kode menu sudah digunakan."}
+        m = MenuItem(item_id=code, nama_menu=req.nama_menu.strip(),
+                     kategori=req.kategori.strip() or "Lainnya",
+                     price=max(0, int(req.price or 0)))
+        s.add(m); s.commit(); s.refresh(m)
+        return {"ok": True, "id": m.id, "item_id": m.item_id}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/menu/update")
+def db_menu_update(req: MenuUpdateReq):
+    """Ubah nama/kategori/harga menu di MySQL (kode/item_id tidak diubah)."""
+    s = get_session()
+    try:
+        code = req.item_id.strip().upper()
+        m = s.query(MenuItem).filter(MenuItem.item_id == code).first()
+        if not m:
+            return {"ok": False, "message": "Menu tidak ditemukan."}
+        if not req.nama_menu.strip():
+            return {"ok": False, "message": "Nama menu wajib diisi."}
+        m.nama_menu = req.nama_menu.strip()
+        m.kategori = req.kategori.strip() or "Lainnya"
+        m.price = max(0, int(req.price or 0))
+        s.commit()
+        return {"ok": True, "item_id": m.item_id}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/menu/delete")
+def db_menu_delete(req: MenuDeleteReq):
+    """Hapus menu dari MySQL. Ditolak bila menu sudah ada di riwayat pesanan
+    (agar data interaksi historis untuk NCF tetap utuh)."""
+    s = get_session()
+    try:
+        code = req.item_id.strip().upper()
+        m = s.query(MenuItem).filter(MenuItem.item_id == code).first()
+        if not m:
+            return {"ok": False, "message": "Menu tidak ditemukan."}
+        dipakai = (s.query(OrderDetail)
+                   .filter(OrderDetail.menu_item_id == m.id)
+                   .count())
+        if dipakai > 0:
+            return {"ok": False,
+                    "message": f"Menu tidak bisa dihapus karena sudah ada di {dipakai} riwayat pesanan."}
+        s.delete(m); s.commit()
+        return {"ok": True, "item_id": code}
     except Exception as e:
         s.rollback()
         return {"ok": False, "message": str(e)}

@@ -58,3 +58,24 @@ export function updateUserInDB(user) {
 export function deleteUserFromDB(id) {
   return postJSON('/db/user/delete', { id: Number(id) });
 }
+
+/** Admin: tambah menu ke MySQL. */
+export function addMenuToDB(menu) {
+  return postJSON('/db/menu/add', {
+    item_id: menu.id, nama_menu: menu.name,
+    kategori: menu.category, price: Number(menu.price) || 0,
+  });
+}
+
+/** Admin: ubah menu di MySQL (kode/item_id sebagai kunci). */
+export function updateMenuInDB(menu) {
+  return postJSON('/db/menu/update', {
+    item_id: menu.id, nama_menu: menu.name,
+    kategori: menu.category, price: Number(menu.price) || 0,
+  });
+}
+
+/** Admin: hapus menu dari MySQL (ditolak bila sudah ada di riwayat pesanan). */
+export function deleteMenuFromDB(itemId) {
+  return postJSON('/db/menu/delete', { item_id: itemId });
+}
