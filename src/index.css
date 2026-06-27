@@ -50,7 +50,15 @@ body {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: none; }
 }
-.animate-in { animation: fadeInUp .3s ease both; }
+/* Animasi halaman: HANYA fade (tanpa transform). Transform pada wadah
+   halaman (.content-area) akan membuat "containing block" sehingga
+   elemen position:fixed (tombol keranjang & modal) ikut ter-scroll.
+   Maka untuk .animate-in dipakai fade murni agar fixed tetap ke viewport. */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-in { animation: fadeIn .25s ease both; }
 
 /* ── Page layout ─────────────────────────────────────────── */
 .main-layout { display: flex; min-height: 100vh; }
