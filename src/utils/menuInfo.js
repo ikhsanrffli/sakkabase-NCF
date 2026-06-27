@@ -58,3 +58,41 @@ const CAT_DESC = {
 export function menuDescription(m) {
   return CAT_DESC[m.category] || `Menu ${m.name} pilihan dari Sakka Base.`;
 }
+
+// Estimasi penyajian / porsi per kategori (untuk info tambahan di detail).
+const CAT_SERVING = {
+  'Kopi & Espresso': 'Disajikan panas/dingin · 1 cangkir',
+  'Non-Kopi': 'Disajikan dingin · 1 gelas',
+  'Juice': 'Segar dingin · 1 gelas (±300 ml)',
+  'Minuman': 'Disajikan dingin · 1 botol/gelas',
+  'Croissant & Pastry': 'Dipanggang segar · 1 porsi',
+  'Pudding': 'Disajikan dingin · 1 cup',
+  'Snack Ringan': 'Camilan · 1 bungkus/porsi',
+  'Gorengan & Snack': 'Disajikan hangat · 1 porsi',
+  'Toast': 'Disajikan hangat · 1 porsi',
+  'Nasi Goreng': 'Disajikan hangat · 1 piring',
+  'Nasi Lauk': 'Disajikan hangat · 1 piring + nasi',
+  'Mie & Bihun': 'Disajikan hangat · 1 porsi',
+  'Pasta': 'Disajikan hangat · 1 piring',
+  'Indomie': 'Disajikan hangat · 1 porsi',
+  'Chicken Steak': 'Disajikan hangat · 1 porsi + pelengkap',
+  'Salad': 'Disajikan segar · 1 mangkuk',
+  'Ricebowl': 'Disajikan hangat · 1 mangkuk',
+  'Sayur': 'Disajikan hangat · 1 porsi',
+  'Ice Cream': 'Disajikan beku · 1 scoop/cup',
+  'Barber': 'Layanan · per sesi',
+  'Tambahan': 'Pelengkap · 1 porsi',
+  'Lainnya': '1 item',
+};
+
+export function menuServing(m) {
+  return CAT_SERVING[m.category] || '1 porsi';
+}
+
+/** Label popularitas dari jumlah pesanan. */
+export function popularityLabel(count) {
+  if (count >= 50) return { text: 'Sangat Populer', variant: 'gold' };
+  if (count >= 15) return { text: 'Populer', variant: 'green' };
+  if (count >= 1) return { text: 'Reguler', variant: 'green' };
+  return { text: 'Menu Baru', variant: 'green' };
+}

@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { SearchBar, EmptyState, Modal, Pill } from '../components/UI';
-import { menuPrice, menuDescription, formatRupiah } from '../utils/menuInfo';
+import { menuPrice, menuDescription, menuServing, popularityLabel, formatRupiah } from '../utils/menuInfo';
 
-export default function CatalogPage({ menus }) {
+export default function CatalogPage({ menus, orders = [] }) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [selected, setSelected] = useState(null); // menu yang diklik (detail)
+
+  // popularitas: berapa kali menu ini dipesan (dari data pemesanan nyata)
+  const orderCount = id => orders.filter(o => o.menuId === id).length;
 
   const categories = ['', ...new Set(menus.map(m => m.category))];
 
@@ -76,8 +79,13 @@ export default function CatalogPage({ menus }) {
         <Modal title="Detail Menu" onClose={() => setSelected(null)}>
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <div style={{ fontSize: '3.5rem', lineHeight: 1 }}>{selected.icon}</div>
-            <h3 style={{ margin: '.6rem 0 .2rem', fontSize: '1.15rem' }}>{selected.name}</h3>
-            <Pill variant="green">{selected.category}</Pill>
+            <h3 style={{ margin: '.6rem 0 .35rem', fontSize: '1.15rem' }}>{selected.name}</h3>
+            <span style={{ display: 'inline-flex', gap: '.4rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <Pill variant="green">{selected.category}</Pill>
+              <Pill variant={popularityLabel(orderCount(selected.id)).variant}>
+                ⭐ {popularityLabel(orderCount(selected.id)).text}
+              </Pill>
+            </span>
           </div>
 
           <div style={{ fontSize: '.85rem', color: 'var(--gray4)', lineHeight: 1.7 }}>
@@ -100,6 +108,14 @@ export default function CatalogPage({ menus }) {
               <span style={{ fontWeight: 700, color: 'var(--green)' }}>
                 {formatRupiah(menuPrice(selected))}
               </span>
+            </div>
+            <div style={detailRow}>
+              <span style={detailLabel}>🍽️ Penyajian</span>
+              <span>{menuServing(selected)}</span>
+            </div>
+            <div style={detailRow}>
+              <span style={detailLabel}>📈 Popularitas</span>
+              <span><strong>{orderCount(selected.id)}</strong> kali dipesan</span>
             </div>
           </div>
 

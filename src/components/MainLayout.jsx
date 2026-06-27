@@ -88,7 +88,7 @@ export default function MainLayout() {
       case 'menus':              return <MenusPage {...sharedProps} />;
       case 'orders':             return <OrdersPage {...sharedProps} />;
       case 'recommendations':    return <RecommendationsPage {...sharedProps} />;
-      case 'catalog':            return <CatalogPage menus={menus} />;
+      case 'catalog':            return <CatalogPage menus={menus} orders={orders} />;
       case 'order-menu':         return <OrderMenuPage menus={menus} orders={orders} setOrders={setOrders} />;
       case 'my-recommendations': return <MyRecommendationsPage menus={menus} orders={orders} />;
       default:                   return null;
