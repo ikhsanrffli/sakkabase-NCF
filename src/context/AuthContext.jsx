@@ -16,11 +16,12 @@ export function AuthProvider({ children }) {
       .catch(() => {});
   }, []);
 
-  function login(username, password, role) {
+  function login(username, password) {
+    // Login terpusat: peran (admin/user) terdeteksi otomatis dari akun.
     const found = users.find(
-      u => u.username === username && u.password === password && u.role === role
+      u => u.username === username && u.password === password
     );
-    if (!found) return { success: false, message: 'Username/password salah atau peran tidak sesuai.' };
+    if (!found) return { success: false, message: 'Username atau password salah.' };
     setCurrentUser(found);
     return { success: true };
   }
