@@ -357,7 +357,7 @@ body {
 .stat-icon { position: absolute; right: 1rem; top: 1rem; font-size: 22px; opacity: .55; }
 
 /* ── Tables ──────────────────────────────────────────────── */
-.table-wrapper { overflow-x: auto; }
+.table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .data-table { width: 100%; border-collapse: collapse; font-size: .81rem; }
 .data-table th {
   padding: .65rem 1rem; text-align: left;
@@ -368,7 +368,7 @@ body {
 }
 .data-table td {
   padding: .72rem 1rem; border-bottom: 1px solid var(--gray2);
-  color: var(--gray5); vertical-align: middle;
+  color: var(--gray5); vertical-align: middle; white-space: nowrap;
 }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover td { background: var(--gray1); }
