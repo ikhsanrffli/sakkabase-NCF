@@ -92,12 +92,12 @@ export default function MenusPage({ menus, setMenus }) {
                 <tr><td colSpan={6}><EmptyState icon="🍽️" message="Tidak ada menu ditemukan." /></td></tr>
               ) : filtered.map((m, i) => (
                 <tr key={m.id}>
-                  <td style={{ color: 'var(--gray3)' }}>{i + 1}</td>
-                  <td><span className="mono">{m.id}</span></td>
-                  <td><span style={{ marginRight: '.4rem' }}>{m.icon}</span><strong>{m.name}</strong></td>
-                  <td><Pill variant="gold">{m.category}</Pill></td>
-                  <td style={{ fontWeight: 600, color: 'var(--green)' }}>{formatRupiah(menuPrice(m))}</td>
-                  <td>
+                  <td data-label="No" style={{ color: 'var(--gray3)' }}>{i + 1}</td>
+                  <td data-label="ID Item"><span className="mono">{m.id}</span></td>
+                  <td data-label="Nama Menu"><span style={{ marginRight: '.4rem' }}>{m.icon}</span><strong>{m.name}</strong></td>
+                  <td data-label="Kategori"><Pill variant="gold">{m.category}</Pill></td>
+                  <td data-label="Harga" style={{ fontWeight: 600, color: 'var(--green)' }}>{formatRupiah(menuPrice(m))}</td>
+                  <td data-label="Aksi">
                     <button className="btn btn-outline btn-sm" onClick={() => openEdit(m)}>Edit</button>
                     <button className="btn btn-danger btn-sm" style={{ marginLeft: '.4rem' }} onClick={() => handleDelete(m)}>Hapus</button>
                   </td>

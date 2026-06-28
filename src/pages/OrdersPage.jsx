@@ -83,13 +83,13 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
                 <tr><td colSpan={7}><EmptyState icon="📋" message="Tidak ada data pemesanan." /></td></tr>
               ) : pageData.map((o, i) => (
                 <tr key={o.id}>
-                  <td style={{ color: 'var(--gray3)' }}>{start + i + 1}</td>
-                  <td><span className="mono">{o.id}</span></td>
-                  <td>{o.userName}</td>
-                  <td>{o.menuName}</td>
-                  <td style={{ color: 'var(--gray4)' }}>{o.date}</td>
-                  <td><Pill variant="green">1 (positif)</Pill></td>
-                  <td>
+                  <td data-label="No" style={{ color: 'var(--gray3)' }}>{start + i + 1}</td>
+                  <td data-label="ID Transaksi"><span className="mono">{o.id}</span></td>
+                  <td data-label="Pengguna">{o.userName}</td>
+                  <td data-label="Menu">{o.menuName}</td>
+                  <td data-label="Tanggal" style={{ color: 'var(--gray4)' }}>{o.date}</td>
+                  <td data-label="Label"><Pill variant="green">1 (positif)</Pill></td>
+                  <td data-label="Aksi">
                     <button className="btn btn-danger btn-sm" onClick={() => handleDelete(o)}>Hapus</button>
                   </td>
                 </tr>

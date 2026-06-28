@@ -496,3 +496,34 @@ body {
   .menu-grid { grid-template-columns: 1fr; }
   .content-area { padding: 1rem; }
 }
+
+/* Tabel admin → kartu bertumpuk di layar kecil (semua kolom terlihat ke bawah,
+   tanpa perlu geser samping). */
+@media (max-width: 600px) {
+  .table-wrapper { overflow-x: visible; }
+  .data-table thead { display: none; }                 /* header disembunyikan */
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
+  .data-table tr {
+    border: 1px solid var(--gray2);
+    border-radius: var(--radius-md);
+    margin-bottom: .75rem;
+    background: white;
+    overflow: hidden;
+  }
+  .data-table td {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: .6rem .9rem;
+    white-space: normal;                                /* nilai boleh wrap di kartu */
+    border: none; border-bottom: 1px solid var(--gray1);
+    text-align: right;
+  }
+  .data-table tr td:last-child { border-bottom: none; }
+  .data-table td::before {
+    content: attr(data-label);                          /* label kolom muncul di kiri */
+    font-weight: 700; font-size: .66rem; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--gray4); text-align: left; flex-shrink: 0;
+  }
+  /* baris "tidak ada data" tetap rapi tanpa label */
+  .data-table td[colspan]::before { content: none; }
+  .data-table td[colspan] { justify-content: center; }
+}

@@ -97,11 +97,11 @@ export default function UsersPage({ users, setUsers }) {
                 <tr><td colSpan={5}><EmptyState icon="👤" message="Tidak ada pengguna ditemukan." /></td></tr>
               ) : pageData.map((u, i) => (
                 <tr key={u.id}>
-                  <td style={{ color: 'var(--gray3)' }}>{start + i + 1}</td>
-                  <td><strong>{u.name}</strong></td>
-                  <td><span className="mono">{u.username}</span></td>
-                  <td><Pill variant="green">{u.role}</Pill></td>
-                  <td>
+                  <td data-label="No" style={{ color: 'var(--gray3)' }}>{start + i + 1}</td>
+                  <td data-label="Nama"><strong>{u.name}</strong></td>
+                  <td data-label="Username"><span className="mono">{u.username}</span></td>
+                  <td data-label="Peran"><Pill variant="green">{u.role}</Pill></td>
+                  <td data-label="Aksi">
                     <button className="btn btn-outline btn-sm" onClick={() => openEdit(u)}>Edit</button>
                     <button className="btn btn-danger btn-sm" style={{ marginLeft: '.4rem' }} onClick={() => handleDelete(u)}>Hapus</button>
                   </td>
