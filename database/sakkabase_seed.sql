@@ -58,7 +58,9 @@ CREATE TABLE `recommendations` (
   `rank` TINYINT(4) NOT NULL,
   `score` FLOAT NOT NULL,
   `generated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`), KEY `user_id` (`user_id`), KEY `menu_item_id` (`menu_item_id`),
+  CONSTRAINT `fk_rec_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
+  CONSTRAINT `fk_rec_menu` FOREIGN KEY (`menu_item_id`) REFERENCES `menu_items` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE `model_log` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
