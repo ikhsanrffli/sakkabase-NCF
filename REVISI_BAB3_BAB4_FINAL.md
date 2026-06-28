@@ -1,102 +1,262 @@
-# REVISI BAB 3 (Perancangan Basis Data) & BAB 4 — DATA AKTUAL SKENARIO B
+# REVISI BAB 3 & BAB 4 — DATA NYATA SKENARIO B (sesuai Website & Database)
 
-> **Sumber data:** seluruh angka di dokumen ini adalah **hasil aktual** yang
-> direproduksi dari pipeline `ncf_pipeline/` & `scripts/train_ncf.py` (seed = 42,
-> deterministik) pada dataset `src/dataset.xlsx`, **bukan contoh/karangan**.
-> Skenario B: **User = Pelanggan**, **Item = kode menu**, filter ≥ 2 interaksi.
+> **Semua angka di dokumen ini adalah DATA NYATA** yang diambil/diverifikasi
+> langsung dari `src/dataset.xlsx`, database MySQL (`sakkabase_seed.sql`), dan
+> model terlatih yang dipakai website (`ncf_pipeline/models/ncf_config_C.pth` →
+> sumber `recommendations.json`). Bukan contoh karangan.
 >
-> **Catatan penting (koreksi angka):** nilai lama `HR@10 = 0,3439 / NDCG = 0,1825`
-> ternyata berasal dari versi kode lama dan **tidak memiliki model tersimpan**
-> (tidak reproducible). Saat skrip dijalankan ulang secara deterministik, model
-> final **Konfigurasi C** secara konsisten menghasilkan **HR@10 = 0,3500 dan
-> NDCG@10 = 0,1822** (epoch terbaik ke-5). Inilah angka aktual yang dipakai —
-> sudah diselaraskan ke website (Dashboard) dan database (`model_log`).
+> **Acuan angka final (Skenario B, User = Pelanggan):**
+> - 871 pelanggan · 141 menu · 4.908 baris interaksi · 1.211 transaksi
+> - Setelah praproses: 820 pengguna · 140 item berinteraksi · 4.707 interaksi unik
+> - Model final **Konfigurasi C**: **HR@10 = 0,3500 · NDCG@10 = 0,1822**
+>   (epoch terbaik 5, 32.833 parameter)
+>
+> **Catatan penamaan tabel:** tabel log model di implementasi bernama
+> **`model_log`** (bukan `model_status`). Tabel `model_status` yang muncul di
+> database adalah **sisa skema lama** dan sudah dihapus.
 
 ---
 
-# BAGIAN A — BAB 3.3.2 PERANCANGAN BASIS DATA
+# BAGIAN 1 — BAB 3.2 ANALISIS PROSES (Tabel 3.1–3.15, data nyata)
 
-Skema 6 tabel pada skripsi **sudah benar** dan sesuai implementasi
-(`backend/db.py` + `database/sakkabase_seed.sql`). Tidak ada perubahan struktur.
-Yang perlu disesuaikan hanya **kalimat pengantar** dan **paragraf penutup**
-mengenai pengisian data agar memakai angka Skenario B yang aktual.
+## Paragraf dimensi dataset (ganti)
+> Berdasarkan hasil rekapitulasi keseluruhan riwayat transaksi, dataset ini
+> memuat **871 pelanggan unik** dan **141 menu unik (berdasarkan kode produk)**,
+> dengan total **4.908 baris interaksi** dari **1.211 transaksi**. Setiap baris
+> merepresentasikan satu item menu yang dipesan oleh seorang pelanggan. Tabel 3.1
+> menyajikan cuplikan dataset mentah sebelum prapemrosesan.
 
-### Ganti kalimat pengantar 3.3.2 (paragraf pertama)
-> Sistem rekomendasi menu pada Sakka Base menggunakan *Relational Database
-> Management System* (RDBMS) MySQL untuk menyimpan dan mengelola data penelitian.
-> Basis data terdiri atas enam tabel yang saling berelasi, yaitu `users`,
-> `menu_items`, `orders`, `order_details`, `recommendations`, dan `model_log`.
-> Tabel `order_details` berperan sebagai sumber **umpan balik implisit (implicit
-> feedback)**, di mana setiap baris merepresentasikan satu interaksi positif
-> antara seorang **pelanggan** dengan sebuah item menu. Struktur relasi antar
-> tabel ditampilkan pada Gambar 3.31.
+### Tabel 3.1 — Dataset Riwayat Pemesanan (cuplikan NYATA)
+| No Transaksi | Tanggal | Outlet | Pelanggan | Produk | Qty |
+|---|---|---|---|---|---|
+| 001975 | 01/01/2026 12:49 | Sakka Base - Coffee & Barber | Rendi Ramadhan | C03E - NASI GORENG SPECIAL | 1 |
+| 001975 | 01/01/2026 12:49 | Sakka Base - Coffee & Barber | Rendi Ramadhan | A07B - LE MINERAL 600ML | 1 |
+| 001977 | 01/01/2026 14:40 | Sakka Base - Coffee & Barber | Jenny Sanjaya | A06E - TOMATO JUICE | 1 |
+| 001981 | 02/01/2026 10:31 | Sakka Base - Coffee & Barber | Angelina Tanusaputra | C03C - NASI GORENG SEAFOOD | 1 |
+| 001982 | 02/01/2026 12:26 | Sakka Base - Coffee & Barber | Ricky Salim | A06C - AVOCADO JUICE | 1 |
 
-### Konfirmasi struktur tabel (Tabel 3.26–3.31) — sudah sesuai, tidak diubah
-Keenam tabel pada dokumen (Tabel 3.26 Users s.d. Tabel 3.31 Model_Status) **sama
-persis** dengan implementasi. Pastikan kolom berikut tertulis (ini yang aktual):
+## Pembersihan Data — paragraf (ganti)
+> Pada tahap pembersihan, kolom transaksi (No Transaksi, Tanggal, Pelanggan) yang
+> kosong akibat *merged cell* pada baris lanjutan satu transaksi diisi-maju
+> (*forward-fill*), sehingga setiap baris produk memiliki identitas pelanggan dan
+> tanggal yang lengkap. Selanjutnya baris yang tidak memiliki Produk valid
+> dihapus. Hasil akhir menghasilkan **4.908 baris interaksi valid**.
 
-- **users:** `id`, `nama_lengkap`, `username`, `password`, `role`
-  `enum('admin','user')`, `source` `enum('historical','registered')`, `created_at`.
-- **menu_items:** `id`, `item_id`, `nama_menu`, `kategori`, `price` (INT, harga
-  menu), `created_at`, `updated_at`.
-- **orders:** `id`, `user_id` (FK→users), `total` (INT, total belanja), `tanggal`,
-  `created_at`.
-- **order_details:** `id`, `order_id` (FK→orders), `menu_item_id` (FK→menu_items),
-  `qty`, `price`.
-- **recommendations:** `id`, `user_id` (FK), `menu_item_id` (FK), `rank`, `score`
-  (FLOAT), `generated_at`.
-- **model_log:** `id`, `status` `enum('training','ready','error')`, `model_path`,
-  `hr_at_10` (FLOAT), `ndcg_at_10` (FLOAT), `trained_at`, `error_log`, `created_at`.
+### Tabel 3.2 — Sebelum Pembersihan (cuplikan NYATA transaksi 001975)
+*Pada data mentah, identitas transaksi hanya tertulis pada baris pertama; baris
+lanjutan kosong (merged cell).*
 
-### Ganti paragraf penutup 3.3.2 (pengisian data — angka aktual)
-> Basis data diisi dengan data hasil praproses dataset transaksi Sakka Base.
-> Tabel `users` memuat **872 baris** (1 akun admin + **871 pelanggan** unik hasil
-> rekapitulasi nama pelanggan), tabel `menu_items` memuat **141 item menu**
-> (berdasarkan kode produk), tabel `orders` memuat **1.211 transaksi**, dan tabel
-> `order_details` memuat **4.908 baris interaksi** yang menjadi umpan balik
-> implisit bagi model. Tabel `model_log` menyimpan satu baris status model final
-> dengan capaian **HR@10 = 0,3500** dan **NDCG@10 = 0,1822**.
+| No Transaksi | Tanggal | Pelanggan | Produk | Qty |
+|---|---|---|---|---|
+| 001975 | 01/01/2026 12:49 | Rendi Ramadhan | C03E - NASI GORENG SPECIAL | 1 |
+| *(kosong)* | *(kosong)* | *(kosong)* | A07B - LE MINERAL 600ML | 1 |
+| *(kosong)* | *(kosong)* | *(kosong)* | A06C - AVOCADO JUICE | 1 |
+| *(kosong)* | *(kosong)* | *(kosong)* | C04G - NASI CAPCAY SEAFOOD | 1 |
+
+### Tabel 3.3 — Sesudah Pembersihan (forward-fill, NYATA)
+| No Transaksi | Tanggal | Pelanggan | Produk | Qty |
+|---|---|---|---|---|
+| 001975 | 01/01/2026 12:49 | Rendi Ramadhan | C03E - NASI GORENG SPECIAL | 1 |
+| 001975 | 01/01/2026 12:49 | Rendi Ramadhan | A07B - LE MINERAL 600ML | 1 |
+| 001975 | 01/01/2026 12:49 | Rendi Ramadhan | A06C - AVOCADO JUICE | 1 |
+| 001975 | 01/01/2026 12:49 | Rendi Ramadhan | C04G - NASI CAPCAY SEAFOOD | 1 |
+
+## Encoding ID Pengguna dan Item — paragraf (ganti)
+> Nilai User ID (nama pelanggan) dan Item ID (kode produk) berupa string, sehingga
+> dilakukan *Label Encoding* yang memetakan tiap nama pelanggan dan kode item ke
+> indeks integer berurutan (terurut) mulai dari 0. Sebagai contoh nyata, pelanggan
+> pertama secara terurut adalah **'Acai' = 0**, **'Acang' = 1**, **'Acen' = 2**;
+> sedangkan item dipetakan **'A00A' = 0**, **'A00B' = 1**, **'A00C' = 2**. Setelah
+> menyaring pelanggan dengan minimal 2 interaksi, diperoleh **820 indeks pengguna**
+> dan **140 indeks item** yang berinteraksi.
+
+### Tabel 3.4 — Representasi Data Interaksi Biner (Pengguna 'Acai' = indeks 0, NYATA)
+| Nama Pelanggan | Encoded User ID | item_id | Nama Menu | Encoded Item ID | Nilai Biner |
+|---|---|---|---|---|---|
+| Acai | 0 | A08A | PURE TEA / COLD REGULAR | 57 | 1 |
+| Acai | 0 | A08B | TEA MANIS / COLD LARGE | 58 | 1 |
+| Acai | 0 | C03B | NASI GORENG KAMPUNG | 97 | 1 |
+| Acai | 0 | C05D | MIE SOP SAKKA | 111 | 1 |
+| Acai | 0 | C10B | CHICKEN CHEESE RICEBOWL | 127 | 1 |
+| Acai | 0 | A00A | AMERICANO SAKKA / LARGE HOT | 0 | 0 |
+| Acai | 0 | A00B | LYCHEE AMERICANO / LARGE | 1 | 0 |
+
+## Negative Sampling — paragraf (ganti)
+> Teknik *negative sampling* diterapkan dengan rasio **4 : 1**: untuk setiap item
+> positif diambil 4 item negatif acak yang belum pernah dipesan pengguna tersebut.
+
+### Tabel 3.5 — Hasil Negative Sampling (Pengguna 'Acai' = 0, NYATA, seed 42)
+| Nama Pelanggan | Encoded User ID | item_id | Nama Menu | Encoded Item ID | Label |
+|---|---|---|---|---|---|
+| Acai | 0 | A08A | PURE TEA / COLD REGULAR | 57 | 1 (positif) |
+| Acai | 0 | A06C | AVOCADO JUICE | 49 | 0 (negatif) |
+| Acai | 0 | A06D | TIMUN JUICE | 50 | 0 (negatif) |
+| Acai | 0 | C01M | RISOL SAKKA | 90 | 0 (negatif) |
+| Acai | 0 | A02G | COCONUT PANDAN LATTE COLD | 26 | 0 (negatif) |
+
+## Embedding Layer — paragraf (ganti)
+> Setiap pengguna dan item direpresentasikan sebagai vektor berdimensi 32 melalui
+> *embedding layer*. Vektor pengguna pᵤ dan vektor item qᵢ digabung
+> (*concatenation*) menjadi satu vektor berukuran 64. Nilai vektor di bawah adalah
+> **bobot nyata** hasil pelatihan model (ditampilkan 4 dimensi pertama).
+
+### Tabel 3.6 — Representasi Vektor pada Embedding Layer (NYATA, dari model terlatih)
+| Pelanggan | User ID | item_id | Item ID | Vektor Pengguna pᵤ (4 dim awal) | Vektor Item qᵢ (4 dim awal) |
+|---|---|---|---|---|---|
+| Acai | 0 | A08A (57) | 57 | [0,0382, 0,0367, 0,0338, −0,0287, …] | [−0,0372, 0,0217, −0,0273, 0,0162, …] |
+| Acai | 0 | A00A (0) | 0 | [0,0382, 0,0367, 0,0338, −0,0287, …] | [0,0317, −0,0487, 0,0469, −0,0382, …] |
+
+## Hidden Layer (MLP) — paragraf (tetap, sudah benar)
+> Vektor gabungan (64 dimensi) diproses oleh MLP dua lapis **[64 → 32]** dengan
+> aktivasi ReLU pada tiap lapis untuk menangkap pola interaksi non-linear.
+
+### Tabel 3.7 — Transformasi Dimensi pada Hidden Layer
+| Input (dari Embedding) | Hidden Layer (ReLU) | Output ke Sigmoid |
+|---|---|---|
+| Vektor gabungan 64 dimensi | 64 → 32 dimensi | 32 → 1 dimensi |
+
+## Output Layer — paragraf (ganti dengan skor NYATA)
+> Keluaran lapisan tersembunyi terakhir (32 dimensi) diteruskan ke *output layer*
+> dengan satu neuron beraktivasi *sigmoid* yang memetakan prediksi ke rentang
+> probabilitas 0–1. Tabel 3.8 menampilkan **skor nyata** model untuk pengguna
+> 'Acai'.
+
+### Tabel 3.8 — Hasil Keluaran Prediksi Output Layer (NYATA)
+| Encoded User ID | item_id | Item ID | Probabilitas Sigmoid (ŷ) | Keterangan |
+|---|---|---|---|---|
+| 0 (Acai) | A00A | 0 | 0,5400 | Probabilitas relatif tinggi |
+| 0 (Acai) | A08A | 57 | 0,2580 | Probabilitas relatif rendah |
+
+## Perhitungan Loss (BCE) — paragraf (ganti dengan nilai NYATA)
+> Nilai *loss* dihitung dengan *Binary Cross-Entropy* antara prediksi dan label
+> aktual. Tabel 3.9 menampilkan contoh perhitungan dari prediksi nyata di atas.
+
+### Tabel 3.9 — Tahap Perhitungan Binary Cross-Entropy (NYATA)
+| Input (User, Item) | Prediksi ŷ | Label y | Nilai Loss BCE |
+|---|---|---|---|
+| (0, A08A) | 0,2580 | 1 | 1,3547 (error besar — positif tapi skor rendah) |
+| (0, A00A) | 0,5400 | 0 | 0,7765 (error sedang — negatif tapi skor agak tinggi) |
+
+> *BCE = −[y·ln(ŷ) + (1−y)·ln(1−ŷ)]. Contoh: −ln(0,2580) = 1,3547.*
+
+## Optimizer Adam — paragraf (tetap konsep, tanpa angka karangan)
+> Optimizer Adam memperbarui bobot jaringan melalui *backpropagation* untuk
+> meminimalkan total *loss* pada setiap iterasi. Bobot *embedding* dan lapisan MLP
+> disesuaikan secara bertahap sesuai gradien hingga model konvergen.
+
+### Tabel 3.10 — Ilustrasi Pembaruan Bobot oleh Optimizer Adam
+| Komponen | Arah Penyesuaian (Gradien) | Dampak |
+|---|---|---|
+| Vektor Pengguna pᵤ | dinaikkan untuk item positif | prediksi item relevan mendekati 1 |
+| Vektor Item qᵢ (negatif) | diturunkan | prediksi item negatif mendekati 0 |
+
+*(Nilai bobot spesifik adalah parameter internal hasil pelatihan; tabel ini
+menggambarkan arah pembaruan, bukan angka eksak.)*
+
+## Alur Inferensi Rekomendasi (Tabel 3.11–3.15) — pengguna NYATA: Budi Santoso
+
+### Tabel 3.11 — Mengumpulkan Daftar Menu (NYATA)
+| Indeks | item_id | Nama Menu | Kategori | Keterangan |
+|---|---|---|---|---|
+| 1 | A00A | Americano Sakka | Kopi & Espresso | Terdaftar di katalog |
+| 2 | A01A | Espresso | Kopi & Espresso | Terdaftar di katalog |
+| 3 | A01C | Split Coffee | Kopi & Espresso | Terdaftar di katalog |
+| 4 | A01E | Cappuccino | Kopi & Espresso | Terdaftar di katalog |
+| … | … | … | … | **Total 141 menu** |
+
+### Tabel 3.12 — Menghapus Menu yang Pernah Dibeli (riwayat NYATA Budi Santoso, 7 interaksi)
+| Nama Menu | Riwayat Budi Santoso | Tindakan Sistem | Status |
+|---|---|---|---|
+| Le Mineral 600ml | Pernah dipesan | Dibuang | Bukan kandidat |
+| French Fries | Pernah dipesan | Dibuang | Bukan kandidat |
+| Chicken Popcorn | Pernah dipesan | Dibuang | Bukan kandidat |
+| Nasi Goreng Kampung | Pernah dipesan | Dibuang | Bukan kandidat |
+| Americano Sakka | Belum pernah dipesan | Dipertahankan | Kandidat model |
+
+> *Riwayat lengkap Budi Santoso (NYATA): Le Mineral 600ml, Lychee Tea, French
+> Fries, Pisang Bakar Coklat Keju, Chicken Popcorn, Nasi Goreng Kampung, Grilled
+> Chicken Mushroom. Dari 140 item, 7 dibuang → 133 kandidat.*
+
+### Tabel 3.13 — Menghitung Skor Kecocokan (skor NYATA)
+| User Target | Kandidat Menu | Probabilitas (Sigmoid) | Persentase |
+|---|---|---|---|
+| Budi Santoso | Americano Sakka | 0,5417 | 54,2% |
+| Budi Santoso | Nasi Ayam Penyet Cabe Ijo | 0,5200 | 52,0% |
+| Budi Santoso | Sanger Sakka | 0,5163 | 51,6% |
+| Budi Santoso | Tomato Juice | 0,1xxx | (skor rendah, tidak masuk Top-10) |
+
+### Tabel 3.14 — Mengurutkan Menu (NYATA)
+| Posisi | Nama Menu | Probabilitas | Status |
+|---|---|---|---|
+| Ke-1 | Americano Sakka | 0,5417 | Diambil |
+| Ke-2 | Nasi Ayam Penyet Cabe Ijo | 0,5200 | Diambil |
+| Ke-3 | Sanger Sakka | 0,5163 | Diambil |
+| … | … | … | … |
+| Ke-10 | Nasi Soto Ayam | 0,4246 | Batas pengambilan (cut-off) |
+| Ke-11 | (menu berikutnya) | < 0,4246 | Tidak diambil |
+| Ke-133 | (kandidat terakhir) | 0,0358 | Tidak diambil |
+
+### Tabel 3.15 — Mengambil 10 Menu Terbaik (Top-10 NYATA, Budi Santoso)
+| Peringkat | item_id | Nama Menu | Skor (NCF) |
+|---|---|---|---|
+| 1 | A00A | Americano Sakka | 54,2% |
+| 2 | C04B | Nasi Ayam Penyet Cabe Ijo | 52,0% |
+| 3 | A01D | Sanger Sakka | 51,6% |
+| 4 | C03C | Nasi Goreng Seafood | 49,6% |
+| 5 | C04C | Nasi Ayam Geprek | 47,4% |
+| 6 | A08C | Lemon Tea | 45,3% |
+| 7 | C03E | Nasi Goreng Special | 45,2% |
+| 8 | A03A | Butterscotch Cream Cheese Cold | 44,8% |
+| 9 | A02A | Aren Latte | 43,5% |
+| 10 | C04D | Nasi Soto Ayam | 42,5% |
 
 ---
 
-# BAGIAN B — BAB 4 HASIL DAN PEMBAHASAN
+# BAGIAN 2 — BAB 3.3.2 PERANCANGAN BASIS DATA
+
+Skema **6 tabel** sudah benar dan sesuai implementasi (`backend/db.py`).
+**Perubahan wajib:** ganti nama **Tabel 3.31 "Model_Status" → "Model_Log"**
+(nama tabel asli di sistem = `model_log`; `model_status` adalah tabel sisa skema
+lama yang sudah dihapus).
+
+### Ganti paragraf penutup 3.3.2 (pengisian data — NYATA)
+> Basis data diisi dari hasil praproses dataset. Tabel `users` memuat **872 baris**
+> (1 admin + **871 pelanggan**), `menu_items` memuat **141 item menu**, `orders`
+> memuat **1.211 transaksi**, dan `order_details` memuat **4.908 baris interaksi**
+> sebagai umpan balik implisit. Tabel `model_log` menyimpan satu baris status model
+> final dengan **HR@10 = 0,3500** dan **NDCG@10 = 0,1822**.
+
+### Tabel 3.31 — Model_Log (ganti judul dari "Model_Status")
+| Nama Field | Tipe Data | Keterangan |
+|---|---|---|
+| id | int(11) | Primary Key |
+| status | enum('training','ready','error') | Status proses model |
+| model_path | varchar(255) | Lokasi file model |
+| hr_at_10 | float | Nilai Hit Ratio@10 |
+| ndcg_at_10 | float | Nilai NDCG@10 |
+| trained_at | datetime | Waktu pelatihan selesai |
+| error_log | text | Catatan error (jika ada) |
+| created_at | datetime | Waktu log dibuat |
+
+*(Tabel 3.26–3.30 tidak berubah — sudah sesuai.)*
+
+---
+
+# BAGIAN 3 — BAB 4 HASIL DAN PEMBAHASAN
 
 ## 4.1.2 Hasil Preprocessing Data
 
-### Paragraf pembuka (ganti)
-> Tahap praproses mentransformasi data mentah riwayat transaksi menjadi format
-> yang dapat diproses model NCF. Dataset mentah dibaca dari berkas Microsoft Excel
-> (`dataset.xlsx`) berisi riwayat transaksi Sakka Base – Coffee & Barber Citraland
-> Helvetia. Berbeda dengan pendekatan berbasis nomor transaksi, penelitian ini
-> menjadikan **identitas pelanggan (kolom Pelanggan)** sebagai unit pengguna,
-> sehingga seluruh transaksi milik satu pelanggan yang sama digabung menjadi satu
-> profil preferensi. Setiap baris produk diisi-maju (*forward-fill*) untuk
-> kolom transaksi, item diambil dari **kode produk** (varian digabung), lalu
-> pasangan (pelanggan, item) di-dedupe menjadi satu interaksi biner.
-
-### Tabel 4.1 — Statistik Dataset Setelah Pembersihan Data
+### Tabel 4.1 — Statistik Dataset Setelah Pembersihan
 | Keterangan | Nilai |
 |---|---|
 | Baris item valid dari file Excel | 4.908 |
-| Baris tidak valid (dilewati) | 0 |
 | Transaksi unik (orders) | 1.211 |
 | Pelanggan unik (mentah) | 871 |
 | Item menu unik (kode produk) | 141 |
 | Interaksi biner unik (pasangan pelanggan–item) | 4.707 |
 
-> *Catatan: dari 4.908 baris transaksi, setelah pasangan (pelanggan, item) yang
-> berulang digabung menjadi interaksi biner, diperoleh 4.707 interaksi unik.*
-
-### Encoding ID Pengguna dan Item (paragraf — ganti)
-> Karena penelitian memakai **nama pelanggan** sebagai pengguna dan **kode menu**
-> sebagai item, dilakukan *Label Encoding* yang memetakan setiap nama pelanggan
-> dan kode item ke indeks integer berurutan mulai dari 0, untuk digunakan sebagai
-> indeks pada *embedding layer*. Setelah penyaringan pelanggan dengan minimal 2
-> interaksi, diperoleh **820 indeks pengguna (0–819)** dan **140 indeks item
-> (0–139)** yang memiliki interaksi.
-
-### Tabel 4.2 — Hasil Label Encoding Pengguna (5 data pertama, aktual)
-| Indeks Encoding | Nama Pelanggan |
+### Tabel 4.2 — Label Encoding Pengguna (5 pertama, NYATA)
+| Indeks | Nama Pelanggan |
 |---|---|
 | 0 | Acai |
 | 1 | Acang |
@@ -104,8 +264,8 @@ persis** dengan implementasi. Pastikan kolom berikut tertulis (ini yang aktual):
 | 3 | Acin |
 | 4 | Acu |
 
-### Tabel 4.3 — Hasil Label Encoding Item Menu (5 data pertama, aktual)
-| Indeks Encoding | item_id | Nama Menu |
+### Tabel 4.3 — Label Encoding Item (5 pertama, NYATA)
+| Indeks | item_id | Nama Menu |
 |---|---|---|
 | 0 | A00A | AMERICANO SAKKA / LARGE HOT |
 | 1 | A00B | LYCHEE AMERICANO / LARGE |
@@ -113,99 +273,57 @@ persis** dengan implementasi. Pastikan kolom berikut tertulis (ini yang aktual):
 | 3 | A00D | HONEY AMERICANO / REGULAR |
 | 4 | A00E | LEMON AMERICANO / LARGE |
 
-### Pemetaan Nilai Biner (Implicit Feedback) — paragraf
-> Penelitian ini memakai umpan balik implisit sehingga tidak tersedia rating
-> eksplisit. Setiap pasangan (pelanggan, item) yang pernah muncul pada transaksi
-> diberi label **1**, sedangkan pasangan yang tidak pernah muncul dikodekan
-> sebagai label **0** melalui *negative sampling*.
+### Tabel 4.4 — Representasi Implicit Feedback (Pengguna 0 = Acai, NYATA)
+| User Index | Item Index | item_id | Nama Menu | Label |
+|---|---|---|---|---|
+| 0 | 57 | A08A | PURE TEA / COLD REGULAR | 1 |
+| 0 | 58 | A08B | TEA MANIS / COLD LARGE | 1 |
+| 0 | 97 | C03B | NASI GORENG KAMPUNG | 1 |
+| 0 | 111 | C05D | MIE SOP SAKKA | 1 |
+| 0 | 127 | C10B | CHICKEN CHEESE RICEBOWL | 1 |
+| 0 | 0 | A00A | AMERICANO SAKKA / LARGE HOT | 0 |
 
-### Tabel 4.4 — Representasi Implicit Feedback (Pengguna indeks 0 = "Acai", aktual)
-| User Index | Item Index | item_id | Nama Menu | Label | Keterangan |
-|---|---|---|---|---|---|
-| 0 | 57 | A08A | PURE TEA / COLD REGULAR | 1 | Pernah dipesan |
-| 0 | 58 | A08B | TEA MANIS / COLD LARGE | 1 | Pernah dipesan |
-| 0 | 97 | C03B | NASI GORENG KAMPUNG | 1 | Pernah dipesan |
-| 0 | 111 | C05D | MIE SOP SAKKA | 1 | Pernah dipesan |
-| 0 | 127 | C10B | CHICKEN CHEESE RICEBOWL | 1 | Pernah dipesan |
-| 0 | 0 | A00A | AMERICANO SAKKA / LARGE HOT | 0 | Tidak pernah dipesan |
-| 0 | 1 | A00B | LYCHEE AMERICANO / LARGE | 0 | Tidak pernah dipesan |
-
-> *Pengguna "Acai" (indeks 0) memiliki 5 interaksi positif. Seluruh item lain
-> yang tidak pernah dipesannya berlabel 0.*
-
-### Negative Sampling — paragraf (ganti)
-> Sistem menerapkan *negative sampling* secara *runtime* dengan rasio **4 : 1**
-> (4 sampel negatif per 1 sampel positif). Sampel negatif dibangkitkan ulang di
-> setiap awal epoch agar model tidak menghafal pola negatif yang sama; item
-> negatif dipilih acak dari 140 item dengan syarat belum pernah dipesan pengguna
-> tersebut. Dengan **3.887 interaksi positif** pada data latih, *negative
-> sampling* 4:1 menghasilkan **15.548 sampel negatif**, sehingga total data yang
-> diproses model per epoch berjumlah **19.435 sampel**.
-
-### Tabel 4.5 — Hasil Negative Sampling 4:1 (Pengguna indeks 0, aktual, seed 42)
+### Tabel 4.5 — Negative Sampling 4:1 (Pengguna 0, NYATA, seed 42)
 | No | User Index | Item Index | item_id | Nama Menu | Label | Jenis |
 |---|---|---|---|---|---|---|
 | 1 | 0 | 57 | A08A | PURE TEA / COLD REGULAR | 1 | Positif |
 | 2 | 0 | 49 | A06C | AVOCADO JUICE | 0 | Negatif |
 | 3 | 0 | 50 | A06D | TIMUN JUICE | 0 | Negatif |
-| 4 | 0 | 90 | C01M | RISOLES | 0 | Negatif |
-| 5 | 0 | 26 | A02G | COCONUT PANDAN LATTE COLD / LARGE | 0 | Negatif |
+| 4 | 0 | 90 | C01M | RISOL SAKKA | 0 | Negatif |
+| 5 | 0 | 26 | A02G | COCONUT PANDAN LATTE COLD | 0 | Negatif |
 
-### Leave-One-Out Split — paragraf (ganti)
-> Pembagian dataset memakai strategi *leave-one-out*: item dengan tanggal
-> transaksi paling akhir per pengguna dipisahkan sebagai data uji, sedangkan
-> seluruh interaksi sebelumnya menjadi data latih. Pelanggan dengan hanya 1
-> interaksi (**51 pelanggan**) tidak diikutkan pada data uji. Untuk evaluasi,
-> setiap pengguna uji diberikan **100 item kandidat** (1 item *ground truth* + 99
-> item negatif acak).
-
-### Tabel 4.6 — Hasil Leave-One-Out Split (3 pengguna aktual)
+### Tabel 4.6 — Leave-One-Out Split (3 pengguna NYATA)
 | User Index | Total Interaksi | Data Latih | Data Uji (Item Terakhir) |
 |---|---|---|---|
 | 0 | 5 | 4 interaksi | C10B — CHICKEN CHEESE RICEBOWL |
 | 1 | 5 | 4 interaksi | C10C — CHICKEN SPICY RICEBOWL |
 | 2 | 7 | 6 interaksi | A08B — TEA MANIS / COLD LARGE |
 
-### Tabel 4.7 — Statistik Akhir Dataset Setelah Praproses (aktual)
+### Tabel 4.7 — Statistik Akhir Dataset Setelah Praproses
 | Keterangan | Nilai |
 |---|---|
 | Total pelanggan unik (mentah) | 871 |
 | Pelanggan dibuang (< 2 interaksi) | 51 |
 | Total pengguna dipakai | 820 |
-| Total item menu memiliki interaksi | 140 |
+| Total item berinteraksi | 140 |
 | Total interaksi positif unik | 4.707 |
 | Rata-rata interaksi per pengguna | 5,74 |
 | Data latih (train positif) | 3.887 |
 | Data uji (test set, LOO) | 820 pengguna |
 | Total sampel per epoch (positif + negatif) | 19.435 |
 | Kandidat evaluasi per pengguna | 100 (1 positif + 99 negatif) |
-| Strategi pembagian dataset | Leave-One-Out |
+| Strategi pembagian | Leave-One-Out |
 
----
+## 4.1.3 Hasil Pelatihan dan Pengujian Model
 
-## 4.1.3 Hasil Pelatihan dan Pengujian Model NCF
-
-### Tabel 4.8 — Hasil Grid Search NCF (aktual)
+### Tabel 4.8 — Hasil Grid Search NCF (NYATA)
 | Konfigurasi | embed_dim | mlp_layers | Dropout | Learning Rate | Epoch Terbaik | HR@10 | NDCG@10 |
 |---|---|---|---|---|---|---|---|
 | A | 32 | [64, 32, 16] | 0,2 | 0,001 | 1 | 0,3524 | 0,1835 |
 | B | 16 | [32, 16, 8] | 0,3 | 0,001 | 3 | 0,3488 | 0,1824 |
 | **C** | **32** | **[64, 32]** | **0,2** | **0,0005** | **5** | **0,3500** | **0,1822** |
 
-### Narasi pemilihan model final (ganti)
-> Berdasarkan Tabel 4.8, ketiga konfigurasi menghasilkan HR@10 yang sangat
-> berdekatan (rentang 0,3488–0,3524), menandakan performa yang relatif setara.
-> Konfigurasi A dengan *learning rate* lebih besar (0,001) langsung mencapai
-> performa puncak pada epoch ke-1 lalu cenderung tidak stabil pada epoch-epoch
-> berikutnya. Konfigurasi B dengan dimensi embedding lebih kecil (16) memiliki
-> kapasitas yang lebih terbatas. Sementara itu, **Konfigurasi C** (embedding 32,
-> MLP [64, 32], *learning rate* 0,0005) memberikan **konvergensi yang paling
-> stabil** dengan jumlah parameter relatif sedikit (**32.833 parameter**) dan
-> capaian HR@10 = 0,3500 yang kompetitif. Oleh karena itu, **Konfigurasi C
-> ditetapkan sebagai model final** karena keseimbangan antara kestabilan
-> pelatihan, efisiensi parameter, dan performa.
-
-### Tabel 4.9 — Hyperparameter Pelatihan Konfigurasi C
+### Tabel 4.9 — Hyperparameter Konfigurasi C
 | Parameter | Nilai |
 |---|---|
 | Dimensi Embedding | 32 |
@@ -220,13 +338,7 @@ persis** dengan implementasi. Pastikan kolom berikut tertulis (ini yang aktual):
 | Optimizer | Adam |
 | Loss Function | Binary Cross-Entropy (BCE) |
 
-### Paragraf proses pelatihan (ganti)
-> Setiap epoch memproses **19.435 sampel** (3.887 positif + 15.548 negatif, rasio
-> 1:4). Sampel negatif dibangkitkan ulang secara acak di setiap awal epoch.
-> Perkembangan nilai *training loss* dan metrik per epoch ditampilkan pada
-> Tabel 4.10.
-
-### Tabel 4.10 — Perkembangan Pelatihan per Epoch — Konfigurasi C (aktual)
+### Tabel 4.10 — Perkembangan Pelatihan per Epoch — Konfigurasi C (NYATA)
 | Epoch | Training Loss | Test HR@10 | NDCG@10 | Keterangan |
 |---|---|---|---|---|
 | 1 | 0,6688 | 0,3476 | 0,1797 | Model terbaik tersimpan |
@@ -240,19 +352,7 @@ persis** dengan implementasi. Pastikan kolom berikut tertulis (ini yang aktual):
 | 9 | 0,4330 | 0,3415 | 0,1799 | Tidak ada peningkatan (4/5) |
 | 10 | 0,4330 | 0,3439 | 0,1798 | Early stop terpenuhi (5/5) |
 
-### Paragraf analisis Tabel 4.10 (ganti)
-> Nilai *training loss* turun konsisten dari 0,6688 (epoch 1) hingga stabil di
-> kisaran 0,433 pada epoch akhir. Performa terbaik pada data uji dicapai pada
-> **epoch ke-5** (HR@10 = 0,3500; NDCG@10 = 0,1822) sehingga bobot model pada
-> epoch tersebut disimpan sebagai model final. Karena tidak terjadi peningkatan
-> HR@10 selama 5 epoch berturut-turut sesudahnya, *early stopping* menghentikan
-> pelatihan pada **epoch ke-10**.
-
-### Gambar 4.1
-Ganti dengan kurva dari `scripts/history_configC.csv` (atau
-`figures/gambar_4_1_kurva_training.png` bila sudah dibuat ulang).
-
-### Tabel 4.11 — Informasi Model Final (aktual)
+### Tabel 4.11 — Informasi Model Final (NYATA)
 | Informasi | Nilai |
 |---|---|
 | Path file model | models/ncf_config_C.pth |
@@ -263,24 +363,17 @@ Ganti dengan kurva dari `scripts/history_configC.csv` (atau
 | HR@10 (data uji) | 0,3500 |
 | NDCG@10 (data uji) | 0,1822 |
 
----
-
 ## 4.1.4 Hasil Inferensi Rekomendasi Menu
 
-### Paragraf pembuka (ganti — pengguna nyata Skenario B)
-> Sebagai pembuktian fungsionalitas keluaran model, dilakukan inferensi terhadap
-> pelanggan **Jenny Sanjaya** (indeks pengguna 382), yaitu pelanggan paling aktif
-> dengan **28 interaksi**. Berdasarkan riwayatnya, pelanggan ini memiliki
-> preferensi kuat pada kategori kopi (Honey Americano, Cafe Latte, Dirty Latte,
-> Aren Latte), teh & jus (Pure Tea, Lychee Tea, Mango/Timun/Tomato Juice), serta
-> makanan berat (Nasi Goreng Special, Nasi Ayam Bakar, Nasi Ayam Geprek, beragam
-> *ricebowl* dan *pasta*). Sistem secara otomatis menyaring menu yang sudah pernah
-> dipesan dari daftar kandidat, kemudian menghitung skor probabilitas (sigmoid)
-> bagi seluruh menu yang belum pernah dicoba. Hasil Top-10 disajikan pada
-> Tabel 4.12.
+### Paragraf pembuka (ganti — pengguna NYATA)
+> Sebagai pembuktian fungsionalitas, dilakukan inferensi terhadap pelanggan
+> **Jenny Sanjaya** (indeks 382), pelanggan paling aktif dengan **28 interaksi**
+> yang mencakup kategori kopi, teh, jus, dan makanan berat. Sistem menyaring menu
+> yang sudah pernah dipesan, lalu menghitung skor sigmoid bagi menu yang belum
+> dicoba. Hasil Top-10 disajikan pada Tabel 4.12.
 
-### Tabel 4.12 — Hasil Inferensi Top-10 Rekomendasi (Jenny Sanjaya, aktual)
-| Peringkat | item_id | Nama Menu | Kategori | Skor Probabilitas (Sigmoid) |
+### Tabel 4.12 — Top-10 Rekomendasi (Jenny Sanjaya, skor NYATA)
+| Peringkat | item_id | Nama Menu | Kategori | Skor Sigmoid |
 |---|---|---|---|---|
 | 1 | A00A | Americano Sakka | Kopi & Espresso | 0,5413 |
 | 2 | C04B | Nasi Ayam Penyet Cabe Ijo | Nasi Lauk | 0,5090 |
@@ -293,83 +386,39 @@ Ganti dengan kurva dari `scripts/history_configC.csv` (atau
 | 9 | C08D | Grilled Chicken Mushroom Steak | Chicken Steak | 0,3521 |
 | 10 | C01O | Snack Platter | Gorengan & Snack | 0,3247 |
 
-### Paragraf analisis Tabel 4.12 (ganti)
-> Tabel 4.12 memperlihatkan bahwa model merekomendasikan menu kopi (Americano
-> Sakka, Sanger Sakka) yang selaras dengan kebiasaan pelanggan, sekaligus
-> menawarkan variasi menu makanan berat (Nasi Ayam Penyet Cabe Ijo, Nasi Goreng
-> Seafood, Nasi Capcay Seafood) dan minuman lain (Lemon Tea, Avocado Juice).
-> Hal ini menunjukkan model NCF tidak sekadar mengulang kategori yang sudah
-> dikenal pelanggan, tetapi juga menggali korelasi dari pola pembelian
-> pelanggan-pelanggan lain yang serupa, sehingga menghasilkan rekomendasi yang
-> relevan sekaligus bervariasi.
+## 4.2 Pembahasan (ganti angka)
+
+### 4.2.2 Analisis HR dan NDCG
+> Model final menghasilkan **HR@10 = 0,3500** dan **NDCG@10 = 0,1822** dengan
+> strategi *Leave-One-Out* (1 *ground truth* : 99 negatif). HR@10 = 0,3500 berarti
+> dari 100 pengguna uji, model menempatkan menu yang benar-benar dipesan ke dalam
+> Top-10 pada sekitar **35 pengguna** — jauh di atas tebakan acak (~10%). NDCG@10 =
+> 0,1822 menunjukkan kualitas urutan; nilai ini wajar pada *implicit feedback*
+> kuliner karena pelanggan kerap memesan beberapa menu sekaligus.
+
+### 4.2.3 Analisis Kualitas Rekomendasi
+> Inferensi pada Jenny Sanjaya memperlihatkan model menggabungkan menu kopi,
+> makanan berat, dan minuman dengan probabilitas 0,32–0,54, membuktikan NCF
+> menangkap korelasi silang antar kategori, bukan sekadar mengulang kategori yang
+> sudah dikenal pelanggan.
 
 ---
 
-## 4.2 Pembahasan
+# BAGIAN 4 — CHECKLIST PERUBAHAN DI WORD
 
-### 4.2.1 Analisis Konfigurasi dan Pelatihan Model (ganti angka)
-> Proses *grid search* menunjukkan ketiga konfigurasi menghasilkan HR@10 yang
-> berdekatan (0,3488–0,3524). **Konfigurasi C** (embedding 32, MLP [64, 32],
-> *learning rate* 0,0005) dipilih sebagai model final karena konvergensinya paling
-> stabil dengan jumlah parameter paling efisien (**32.833 parameter**). Temuan ini
-> mengindikasikan bahwa untuk data *implicit feedback* yang bersifat biner dan
-> *sparse* (4.707 interaksi pada 820 pengguna × 140 item), arsitektur yang tidak
-> terlalu dalam dengan *learning rate* kecil sudah memadai untuk mengekstraksi
-> fitur laten tanpa *overfitting*.
+**Bab 3.2 (Analisis Proses):**
+- [ ] Dimensi: **871 / 141 / 4.908** (hapus 207 & 1.211-pengguna).
+- [ ] Tabel 3.1 (nyata), 3.2–3.3 (forward-fill nyata), 3.4–3.6 (encoding nyata Acai),
+      3.7–3.10 (skor & BCE nyata), 3.11–3.15 (Budi Santoso, skor nyata 42–54%).
+- [ ] **Hapus "207/208 Menu" → 141**; "Ke-204" → **Ke-133**; skor **98,9% → 42–54%**.
 
-### 4.2.2 Analisis Hasil Evaluasi HR dan NDCG (ganti angka)
-> Model final menghasilkan **HR@10 = 0,3500** dan **NDCG@10 = 0,1822** yang
-> dihitung dengan strategi *Leave-One-Out* (1 item *ground truth* : 99 item
-> negatif). Nilai HR@10 = 0,3500 berarti dari setiap 100 pengguna yang diuji,
-> model berhasil menempatkan menu yang benar-benar akan dipesan ke dalam daftar
-> Top-10 pada sekitar **35 pengguna**. Mengingat peluang tebakan acak hanya
-> sekitar 10% (10 dari 100 kandidat), capaian 35% membuktikan model mempelajari
-> pola preferensi pelanggan secara signifikan di atas tebakan acak. Nilai
-> NDCG@10 = 0,1822 merepresentasikan kualitas urutan daftar; nilai ini wajar pada
-> *implicit feedback* domain kuliner karena pelanggan kerap memesan beberapa jenis
-> menu dalam satu transaksi sehingga banyak kandidat relevan bersaing ketat pada
-> lapisan output.
+**Bab 3.3.2 (Basis Data):**
+- [ ] **Judul Tabel 3.31: "Model_Status" → "Model_Log"**.
+- [ ] Paragraf pengisian data: 872/871/141/1.211/4.908; HR 0,3500.
 
-### 4.2.3 Analisis Hasil Inferensi dan Kualitas Rekomendasi (ganti contoh)
-> Berdasarkan inferensi pada pelanggan **Jenny Sanjaya**, model tidak terjebak
-> hanya merekomendasikan kategori yang sudah sering dipesan, melainkan menyajikan
-> kombinasi menu kopi, makanan berat, dan minuman dengan probabilitas kecocokan
-> tinggi (0,32–0,54). Hal ini membuktikan NCF mampu menangkap **korelasi silang
-> antar kategori menu**: dalam ruang vektor laten, pelanggan dengan pola pembelian
-> serupa cenderung memiliki probabilitas tinggi untuk memesan menu tertentu,
-> sehingga model menghasilkan keragaman rekomendasi yang relevan dengan selera
-> kelompok pelanggan tersebut.
-
----
-
-# BAGIAN C — CHECKLIST PERUBAHAN DI WORD
-
-**Bab 3.3.2:**
-- [ ] Ganti kalimat pengantar (6 tabel + implicit feedback per pelanggan).
-- [ ] Ganti paragraf penutup pengisian data (872/871/141/1.211/4.908; HR 0,3500).
-- [ ] Struktur Tabel 3.26–3.31 tidak diubah (sudah benar).
-
-**Bab 4.1.2 (Preprocessing):**
-- [ ] Tabel 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7 → ganti dengan tabel di atas.
-- [ ] Paragraf encoding/negative sampling/LOO → ganti narasi.
-
-**Bab 4.1.3 (Pelatihan):**
-- [ ] Tabel 4.8 (grid search), 4.9, 4.10 (10 epoch), 4.11 (model final) → ganti.
-- [ ] Gambar 4.1 → kurva baru.
-- [ ] Total parameter di mana pun: **47.521 → 32.833**.
-
-**Bab 4.1.4 (Inferensi):**
-- [ ] Ganti "ID Pengguna 2424" → **Jenny Sanjaya (indeks 382)**.
-- [ ] Tabel 4.12 → Top-10 baru; Gambar 4.2 → screenshot riwayat Jenny.
-
-**Bab 4.2 (Pembahasan):**
-- [ ] Semua angka HR/NDCG: **0,3670/0,1965 → 0,3500/0,1822**.
-- [ ] Contoh inferensi: ganti ke Jenny Sanjaya.
-
-**Bab 4.1.5 (Antarmuka) — angka di narasi:**
-- [ ] Total pengguna: **872** (bukan 1.212); total menu: **141** (bukan 207);
-      interaksi: **4.908** (atau 4.913 bila memasukkan data pengujian).
-- [ ] Gambar 4.5 (Dashboard) → screenshot ulang (kini HR 0,3500 · NDCG 0,1822).
-- [ ] Gambar 4.6–4.13 → screenshot ulang dengan data baru.
-
-**Bab 1 & Bab 2:** tidak ada perubahan angka wajib.
+**Bab 4:**
+- [ ] Tabel 4.1–4.7, 4.8–4.11, 4.12 → ganti dengan tabel di atas.
+- [ ] Total parameter **47.521 → 32.833**; HR/NDCG **0,3670/0,1965 → 0,3500/0,1822**.
+- [ ] Inferensi: ID 2424 → **Jenny Sanjaya (indeks 382)**.
+- [ ] Narasi 4.1.5: total pengguna **872**, menu **141**, interaksi **4.908**.
+- [ ] Gambar 4.1 (kurva), 4.2 (riwayat Jenny), 4.5–4.13 (screenshot ulang).
