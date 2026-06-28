@@ -4,6 +4,7 @@
 SET FOREIGN_KEY_CHECKS = 0;
 SET NAMES utf8mb4;
 
+DROP TABLE IF EXISTS `model_status`;   -- tabel sisa skema lama (duplikat model_log)
 DROP TABLE IF EXISTS `model_log`;
 DROP TABLE IF EXISTS `recommendations`;
 DROP TABLE IF EXISTS `order_details`;
