@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Modal, SearchBar, EmptyState, Pill, useConfirm } from '../components/UI';
+import { addOrderToDB, deleteOrderFromDB } from '../utils/api';
 
 const PER_PAGE = 25; // jumlah baris pemesanan yang ditampilkan per halaman
 
@@ -9,6 +10,7 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ userId: '', menuId: '', date: new Date().toISOString().split('T')[0] });
   const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   const regUsers = users.filter(u => u.role === 'user');
@@ -33,23 +35,28 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
     setModal(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const { userId, menuId, date } = form;
     if (!userId || !menuId || !date) { setFormError('Lengkapi semua field.'); return; }
-    const u = users.find(x => x.id === userId);
-    const m = menus.find(x => x.id === menuId);
+    setFormError('');
+    setSaving(true);
+    const res = await addOrderToDB({ userId, itemId: menuId, date });
+    setSaving(false);
+    if (!res || !res.ok) { setFormError(res?.message || 'Gagal menyimpan ke database.'); return; }
+    // pakai data resmi dari MySQL (id ORDxxxxx, nama, dll)
     setOrders(prev => [...prev, {
-      id: 'ORD' + String(Date.now()).slice(-6),
-      userId, userName: u.name,
-      menuId, menuName: m.name,
-      date
+      id: res.id, userId: String(userId), userName: res.userName,
+      menuId: res.menuId, menuName: res.menuName, date: res.date,
     }]);
     setModal(false);
   }
 
   async function handleDelete(order) {
     const ok = await confirm(`Hapus data pemesanan "${order.id}"?`);
-    if (ok) setOrders(prev => prev.filter(o => o.id !== order.id));
+    if (!ok) return;
+    const res = await deleteOrderFromDB(order.id);
+    if (!res || !res.ok) { alert(res?.message || 'Gagal menghapus dari database.'); return; }
+    setOrders(prev => prev.filter(o => o.id !== order.id));
   }
 
   return (
@@ -144,8 +151,10 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
           </div>
           {formError && <p style={{ color: 'var(--danger)', fontSize: '.78rem', marginBottom: '.5rem' }}>⚠️ {formError}</p>}
           <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={() => setModal(false)}>Batal</button>
-            <button className="btn btn-primary" onClick={handleSave}>Simpan</button>
+            <button className="btn btn-ghost" onClick={() => setModal(false)} disabled={saving}>Batal</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Menyimpan…' : 'Simpan'}
+            </button>
           </div>
         </Modal>
       )}

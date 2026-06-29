@@ -79,3 +79,16 @@ export function updateMenuInDB(menu) {
 export function deleteMenuFromDB(itemId) {
   return postJSON('/db/menu/delete', { item_id: itemId });
 }
+
+/** Admin: tambah satu data pemesanan ke MySQL. */
+export function addOrderToDB({ userId, itemId, date }) {
+  return postJSON('/db/order/add', {
+    user_id: Number(userId), item_id: itemId, tanggal: date,
+  });
+}
+
+/** Admin: hapus satu data pemesanan dari MySQL. id berformat "ORD00001". */
+export function deleteOrderFromDB(orderId) {
+  const detailId = parseInt(String(orderId).replace(/\D/g, ''), 10);
+  return postJSON('/db/order/delete', { detail_id: detailId });
+}

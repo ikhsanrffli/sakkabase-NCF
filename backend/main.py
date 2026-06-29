@@ -237,6 +237,16 @@ class MenuDeleteReq(BaseModel):
     item_id: str
 
 
+class OrderAddReq(BaseModel):
+    user_id: int
+    item_id: str            # kode menu yang dipesan
+    tanggal: str | None = None
+
+
+class OrderDeleteReq(BaseModel):
+    detail_id: int          # id baris order_details (dari "ORDxxxxx")
+
+
 @app.get("/db/health")
 def db_health():
     try:
@@ -408,6 +418,67 @@ def db_menu_delete(req: MenuDeleteReq):
                     "message": f"Menu tidak bisa dihapus karena sudah ada di {dipakai} riwayat pesanan."}
         s.delete(m); s.commit()
         return {"ok": True, "item_id": code}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/order/add")
+def db_order_add(req: OrderAddReq):
+    """Admin: tambah satu data pemesanan (1 order + 1 order_detail) ke MySQL."""
+    s = get_session()
+    try:
+        u = s.query(User).filter(User.id == req.user_id).first()
+        if not u:
+            return {"ok": False, "message": "Pengguna tidak ditemukan."}
+        mi = s.query(MenuItem).filter(MenuItem.item_id == req.item_id.strip().upper()).first()
+        if not mi:
+            return {"ok": False, "message": "Menu tidak ditemukan."}
+        tgl = _date.today()
+        if req.tanggal:
+            try:
+                tgl = _dt.strptime(req.tanggal, "%Y-%m-%d").date()
+            except Exception:
+                pass
+        harga = mi.price or 0
+        order = Order(user_id=u.id, total=harga, tanggal=tgl)
+        s.add(order); s.flush()
+        od = OrderDetail(order_id=order.id, menu_item_id=mi.id, qty=1, price=harga)
+        s.add(od); s.commit(); s.refresh(od)
+        return {"ok": True, "id": f"ORD{od.id:05d}", "detailId": od.id,
+                "orderId": order.id, "userName": u.nama_lengkap,
+                "menuId": mi.item_id, "menuName": mi.nama_menu, "date": str(tgl)}
+    except Exception as e:
+        s.rollback()
+        return {"ok": False, "message": str(e)}
+    finally:
+        s.close()
+
+
+@app.post("/db/order/delete")
+def db_order_delete(req: OrderDeleteReq):
+    """Admin: hapus satu baris pemesanan (order_detail). Bila order induk menjadi
+    kosong, order ikut dihapus; bila masih ada item lain, total dihitung ulang."""
+    s = get_session()
+    try:
+        od = s.query(OrderDetail).filter(OrderDetail.id == req.detail_id).first()
+        if not od:
+            return {"ok": False, "message": "Data pemesanan tidak ditemukan."}
+        order_id = od.order_id
+        s.delete(od); s.flush()
+        sisa = s.query(OrderDetail).filter(OrderDetail.order_id == order_id).all()
+        if not sisa:
+            o = s.query(Order).filter(Order.id == order_id).first()
+            if o:
+                s.delete(o)
+        else:
+            o = s.query(Order).filter(Order.id == order_id).first()
+            if o:
+                o.total = sum((d.price or 0) * (d.qty or 1) for d in sisa)
+        s.commit()
+        return {"ok": True, "detailId": req.detail_id}
     except Exception as e:
         s.rollback()
         return {"ok": False, "message": str(e)}
