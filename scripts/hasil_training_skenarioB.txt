@@ -1,0 +1,48 @@
+================================================================
+STATISTIK DATASET — SKENARIO B (User = Pelanggan, Item = kode)
+================================================================
+Pengguna unik (mentah)            : 871
+Dibuang (<2 interaksi)            : 51
+Pengguna dipakai (>= 2)           : 820
+Item menu unik (kode)             : 140
+Interaksi positif unik            : 4707
+Rata-rata interaksi per pengguna  : 5.74
+Data latih (train positif)        : 3887
+Data uji (test pengguna, LOO)     : 820
+Sampel/epoch (positif+negatif)    : 19435
+
+================================================================
+PELATIHAN DETAIL — Konfigurasi C (final)
+================================================================
+Epoch |    Loss |   HR@10 |  NDCG@10 | Keterangan
+    1 |  0.6688 |  0.3476 |   0.1797 | Model terbaik tersimpan
+    2 |  0.5525 |  0.3451 |   0.1828 | Tidak ada peningkatan (1/5)
+    3 |  0.4599 |  0.3451 |   0.1800 | Tidak ada peningkatan (2/5)
+    4 |  0.4432 |  0.3415 |   0.1780 | Tidak ada peningkatan (3/5)
+    5 |  0.4363 |  0.3500 |   0.1822 | Model terbaik tersimpan
+    6 |  0.4348 |  0.3402 |   0.1800 | Tidak ada peningkatan (1/5)
+    7 |  0.4353 |  0.3500 |   0.1828 | Tidak ada peningkatan (2/5)
+    8 |  0.4340 |  0.3415 |   0.1805 | Tidak ada peningkatan (3/5)
+    9 |  0.4330 |  0.3415 |   0.1799 | Tidak ada peningkatan (4/5)
+   10 |  0.4330 |  0.3439 |   0.1798 | Tidak ada peningkatan (5/5)
+        Early stopping pada epoch 10
+
+================================================================
+TABEL PERBANDINGAN KONFIGURASI (pengganti Tabel 4.8)
+================================================================
+Konf | embed |     mlp_layers | drop |     lr | epoch |   HR@10 |  NDCG@10
+   A |    32 |   [64, 32, 16] |  0.2 |  0.001 |     1 |  0.3524 |   0.1835
+   B |    16 |    [32, 16, 8] |  0.3 |  0.001 |     3 |  0.3488 |   0.1824
+   C |    32 |       [64, 32] |  0.2 | 0.0005 |     5 |  0.3500 |   0.1822
+
+[info] Riwayat epoch Konfigurasi C disimpan -> /home/user/sakkabase-NCF/scripts/history_configC.csv
+
+================================================================
+MODEL FINAL — Konfigurasi A
+================================================================
+Epoch terbaik            : 1
+Training loss epoch best : 0.6517
+Total epoch dijalankan   : 6
+Total parameter model    : 33345
+HR@10  (data uji)        : 0.3524
+NDCG@10 (data uji)       : 0.1835

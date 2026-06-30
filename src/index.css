@@ -48,9 +48,17 @@ body {
 /* ── Animations ──────────────────────────────────────────── */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to   { opacity: 1; transform: none; }
 }
-.animate-in { animation: fadeInUp .3s ease both; }
+/* Animasi halaman: HANYA fade (tanpa transform). Transform pada wadah
+   halaman (.content-area) akan membuat "containing block" sehingga
+   elemen position:fixed (tombol keranjang & modal) ikut ter-scroll.
+   Maka untuk .animate-in dipakai fade murni agar fixed tetap ke viewport. */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-in { animation: fadeIn .25s ease both; }
 
 /* ── Page layout ─────────────────────────────────────────── */
 .main-layout { display: flex; min-height: 100vh; }
@@ -349,7 +357,7 @@ body {
 .stat-icon { position: absolute; right: 1rem; top: 1rem; font-size: 22px; opacity: .55; }
 
 /* ── Tables ──────────────────────────────────────────────── */
-.table-wrapper { overflow-x: auto; }
+.table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .data-table { width: 100%; border-collapse: collapse; font-size: .81rem; }
 .data-table th {
   padding: .65rem 1rem; text-align: left;
@@ -360,7 +368,7 @@ body {
 }
 .data-table td {
   padding: .72rem 1rem; border-bottom: 1px solid var(--gray2);
-  color: var(--gray5); vertical-align: middle;
+  color: var(--gray5); vertical-align: middle; white-space: nowrap;
 }
 .data-table tr:last-child td { border-bottom: none; }
 .data-table tbody tr:hover td { background: var(--gray1); }
@@ -487,4 +495,35 @@ body {
   .stats-grid { grid-template-columns: 1fr; }
   .menu-grid { grid-template-columns: 1fr; }
   .content-area { padding: 1rem; }
+}
+
+/* Tabel admin → kartu bertumpuk di layar kecil (semua kolom terlihat ke bawah,
+   tanpa perlu geser samping). */
+@media (max-width: 600px) {
+  .table-wrapper { overflow-x: visible; }
+  .data-table thead { display: none; }                 /* header disembunyikan */
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; width: 100%; }
+  .data-table tr {
+    border: 1px solid var(--gray2);
+    border-radius: var(--radius-md);
+    margin-bottom: .75rem;
+    background: white;
+    overflow: hidden;
+  }
+  .data-table td {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: .6rem .9rem;
+    white-space: normal;                                /* nilai boleh wrap di kartu */
+    border: none; border-bottom: 1px solid var(--gray1);
+    text-align: right;
+  }
+  .data-table tr td:last-child { border-bottom: none; }
+  .data-table td::before {
+    content: attr(data-label);                          /* label kolom muncul di kiri */
+    font-weight: 700; font-size: .66rem; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--gray4); text-align: left; flex-shrink: 0;
+  }
+  /* baris "tidak ada data" tetap rapi tanpa label */
+  .data-table td[colspan]::before { content: none; }
+  .data-table td[colspan] { justify-content: center; }
 }

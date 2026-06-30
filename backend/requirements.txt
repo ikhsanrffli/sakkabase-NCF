@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+torch
+pandas
+scikit-learn
+numpy
+openpyxl
+sqlalchemy
+pymysql
+cryptography

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { MENUS_DATA, ORDERS_DATA } from '../data/initialData';
+import { API_BASE } from '../utils/api';
 
 import DashboardPage        from '../pages/DashboardPage';
 import UsersPage            from '../pages/UsersPage';
@@ -54,6 +55,18 @@ export default function MainLayout() {
 
   const nav = currentUser.role === 'admin' ? ADMIN_NAV : USER_NAV;
 
+  // Tahap 2: muat menu & pesanan dari MySQL (fallback ke data bawaan bila backend mati).
+  useEffect(() => {
+    fetch(`${API_BASE}/db/menus`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d) && d.length) setMenus(d); })
+      .catch(() => {});
+    fetch(`${API_BASE}/db/orders`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setOrders(d); })
+      .catch(() => {});
+  }, []);
+
   function navigate(p) {
     setPage(p);
     setSidebarOpen(false);
@@ -75,7 +88,7 @@ export default function MainLayout() {
       case 'menus':              return <MenusPage {...sharedProps} />;
       case 'orders':             return <OrdersPage {...sharedProps} />;
       case 'recommendations':    return <RecommendationsPage {...sharedProps} />;
-      case 'catalog':            return <CatalogPage menus={menus} />;
+      case 'catalog':            return <CatalogPage menus={menus} orders={orders} />;
       case 'order-menu':         return <OrderMenuPage menus={menus} orders={orders} setOrders={setOrders} />;
       case 'my-recommendations': return <MyRecommendationsPage menus={menus} orders={orders} />;
       default:                   return null;

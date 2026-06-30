@@ -1,14 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-
-// Kategori yang relevan untuk pemesanan (exclude Barber, Tambahan, Lainnya)
-const FOOD_DRINK_CATS = [
-  'Kopi & Espresso','Non-Kopi','Juice','Minuman',
-  'Croissant & Pastry','Pudding','Snack Ringan',
-  'Gorengan & Snack','Toast','Nasi Goreng','Nasi Lauk',
-  'Mie & Bihun','Pasta','Indomie','Chicken Steak',
-  'Salad','Ricebowl','Sayur','Ice Cream','Produk Kopi',
-];
+import { persistOrderToDB } from '../utils/api';
 
 export default function OrderMenuPage({ menus, orders, setOrders }) {
   const { currentUser } = useAuth();
@@ -19,8 +11,8 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successItems, setSuccessItems] = useState([]);
 
-  // Hanya tampilkan menu makanan & minuman (exclude Barber, Tambahan, dll)
-  const orderableMenus = menus.filter(m => FOOD_DRINK_CATS.includes(m.category));
+  // Tampilkan semua menu (141) tanpa penyaringan kategori.
+  const orderableMenus = menus;
   const dynamicCats = ['Semua', ...new Set(orderableMenus.map(m => m.category))];
 
   const filtered = orderableMenus.filter(m =>
@@ -65,6 +57,8 @@ export default function OrderMenuPage({ menus, orders, setOrders }) {
       date: today,
     }));
     setOrders(prev => [...prev, ...newOrders]);
+    // simpan pesanan ke MySQL (best-effort): kirim kode menu sesuai urutan keranjang
+    persistOrderToDB(currentUser.username, cart.map(c => c.id), today);
     setSuccessItems([...cart]);
     setCart([]);
     setShowCart(false);

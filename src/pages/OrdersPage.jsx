@@ -1,11 +1,16 @@
 import { useState } from 'react';
 import { Modal, SearchBar, EmptyState, Pill, useConfirm } from '../components/UI';
+import { addOrderToDB, deleteOrderFromDB } from '../utils/api';
+
+const PER_PAGE = 25; // jumlah baris pemesanan yang ditampilkan per halaman
 
 export default function OrdersPage({ orders, setOrders, users, menus }) {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ userId: '', menuId: '', date: new Date().toISOString().split('T')[0] });
   const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
   const { confirm, ConfirmDialog } = useConfirm();
 
   const regUsers = users.filter(u => u.role === 'user');
@@ -16,29 +21,42 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
     o.id.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Paginasi: pecah data agar tidak merender ribuan baris sekaligus.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const safePage = Math.min(page, totalPages);            // jaga-jaga bila data menyusut
+  const start = (safePage - 1) * PER_PAGE;
+  const pageData = filtered.slice(start, start + PER_PAGE);
+
+  function onSearch(v) { setSearch(v); setPage(1); }       // kembali ke halaman 1 saat mencari
+
   function openAdd() {
     setForm({ userId: regUsers[0]?.id || '', menuId: menus[0]?.id || '', date: new Date().toISOString().split('T')[0] });
     setFormError('');
     setModal(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const { userId, menuId, date } = form;
     if (!userId || !menuId || !date) { setFormError('Lengkapi semua field.'); return; }
-    const u = users.find(x => x.id === userId);
-    const m = menus.find(x => x.id === menuId);
+    setFormError('');
+    setSaving(true);
+    const res = await addOrderToDB({ userId, itemId: menuId, date });
+    setSaving(false);
+    if (!res || !res.ok) { setFormError(res?.message || 'Gagal menyimpan ke database.'); return; }
+    // pakai data resmi dari MySQL (id ORDxxxxx, nama, dll)
     setOrders(prev => [...prev, {
-      id: 'ORD' + String(Date.now()).slice(-6),
-      userId, userName: u.name,
-      menuId, menuName: m.name,
-      date
+      id: res.id, userId: String(userId), userName: res.userName,
+      menuId: res.menuId, menuName: res.menuName, date: res.date,
     }]);
     setModal(false);
   }
 
   async function handleDelete(order) {
     const ok = await confirm(`Hapus data pemesanan "${order.id}"?`);
-    if (ok) setOrders(prev => prev.filter(o => o.id !== order.id));
+    if (!ok) return;
+    const res = await deleteOrderFromDB(order.id);
+    if (!res || !res.ok) { alert(res?.message || 'Gagal menghapus dari database.'); return; }
+    setOrders(prev => prev.filter(o => o.id !== order.id));
   }
 
   return (
@@ -49,7 +67,7 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
         <div className="card-header">
           <div className="card-header-title">Riwayat Pemesanan ({orders.length} data)</div>
           <div style={{ display: 'flex', gap: '.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <SearchBar value={search} onChange={setSearch} placeholder="Cari pemesanan..." />
+            <SearchBar value={search} onChange={onSearch} placeholder="Cari pemesanan..." />
             <button className="btn btn-primary" onClick={openAdd}>+ Tambah</button>
           </div>
         </div>
@@ -70,15 +88,15 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={7}><EmptyState icon="📋" message="Tidak ada data pemesanan." /></td></tr>
-              ) : filtered.map((o, i) => (
+              ) : pageData.map((o, i) => (
                 <tr key={o.id}>
-                  <td style={{ color: 'var(--gray3)' }}>{i + 1}</td>
-                  <td><span className="mono">{o.id}</span></td>
-                  <td>{o.userName}</td>
-                  <td>{o.menuName}</td>
-                  <td style={{ color: 'var(--gray4)' }}>{o.date}</td>
-                  <td><Pill variant="green">1 (positif)</Pill></td>
-                  <td>
+                  <td data-label="No" style={{ color: 'var(--gray3)' }}>{start + i + 1}</td>
+                  <td data-label="ID Transaksi"><span className="mono">{o.id}</span></td>
+                  <td data-label="Pengguna">{o.userName}</td>
+                  <td data-label="Menu">{o.menuName}</td>
+                  <td data-label="Tanggal" style={{ color: 'var(--gray4)' }}>{o.date}</td>
+                  <td data-label="Label"><Pill variant="green">1 (positif)</Pill></td>
+                  <td data-label="Aksi">
                     <button className="btn btn-danger btn-sm" onClick={() => handleDelete(o)}>Hapus</button>
                   </td>
                 </tr>
@@ -86,6 +104,31 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
             </tbody>
           </table>
         </div>
+
+        {filtered.length > 0 && (
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            flexWrap: 'wrap', gap: '.5rem', padding: '.8rem 1.3rem',
+            borderTop: '1px solid var(--gray2)', fontSize: '.81rem', color: 'var(--gray4)'
+          }}>
+            <span>
+              Menampilkan {start + 1}–{Math.min(start + PER_PAGE, filtered.length)} dari {filtered.length} data
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(safePage - 1)}
+                disabled={safePage <= 1}
+              >‹ Sebelumnya</button>
+              <span>Halaman {safePage} dari {totalPages}</span>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setPage(safePage + 1)}
+                disabled={safePage >= totalPages}
+              >Berikutnya ›</button>
+            </div>
+          </div>
+        )}
       </div>
 
       {modal && (
@@ -108,8 +151,10 @@ export default function OrdersPage({ orders, setOrders, users, menus }) {
           </div>
           {formError && <p style={{ color: 'var(--danger)', fontSize: '.78rem', marginBottom: '.5rem' }}>⚠️ {formError}</p>}
           <div className="modal-actions">
-            <button className="btn btn-ghost" onClick={() => setModal(false)}>Batal</button>
-            <button className="btn btn-primary" onClick={handleSave}>Simpan</button>
+            <button className="btn btn-ghost" onClick={() => setModal(false)} disabled={saving}>Batal</button>
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Menyimpan…' : 'Simpan'}
+            </button>
           </div>
         </Modal>
       )}

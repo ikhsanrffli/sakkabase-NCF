@@ -57,11 +57,16 @@ npm run dev
 
 ## Akun Demo
 
-| Role  | Username | Password  |
-|-------|----------|-----------|
-| Admin | admin    | admin123  |
-| User  | user1    | user123   |
-| User  | user2    | user456   |
+| Role  | Username | Password  | Nama Pelanggan |
+|-------|----------|-----------|----------------|
+| Admin | admin    | admin123  | Administrator  |
+| User  | user1    | user123   | Jenny Sanjaya (pelanggan paling aktif) |
+| User  | user2    | user456   | Tari Setiawan (pelanggan paling aktif) |
+
+> Seluruh **871 pelanggan** dari dataset dimuat sebagai data user (role `user`) untuk
+> matriks interaksi NCF, dropdown rekomendasi admin, dan riwayat pesanan. Selain dua
+> akun demo di atas, setiap pelanggan punya username otomatis (dari namanya) dengan
+> password default `sakka123` bila ingin login sebagai pelanggan tertentu.
 
 ---
 
@@ -99,6 +104,36 @@ export async function getNCFRecommendations(userId, menus, orders, topN = 10) {
 ```
 
 ---
+
+## Dataset & Cara Mengganti Dataset
+
+Data aplikasi (users, menus, orders) **tidak dibaca dari Excel saat runtime**, melainkan
+dari `src/data/initialData.js`. File itu **digenerasi otomatis** dari `src/dataset.xlsx`
+(export "Detil Penjualan": kolom No Transaksi, Tanggal, Outlet, Pelanggan, Produk, Qty).
+
+Untuk mengganti dataset:
+
+```bash
+# 1. Timpa file dataset dengan export terbaru (format kolom harus sama)
+cp /path/ke/dataset-baru.xlsx src/dataset.xlsx
+
+# 2. Install dependency Python sekali saja
+pip install openpyxl
+
+# 3. Regenerasi src/data/initialData.js
+python scripts/convert_dataset.py
+
+# 4. Jalankan ulang aplikasi
+npm run dev
+```
+
+Aturan konversi: satu baris produk = satu interaksi (implicit feedback); `menuId` diambil
+dari kode produk (varian ukuran digabung); pelanggan unik menjadi user. Detail ada di
+komentar `scripts/convert_dataset.py`.
+
+> Catatan: dataset saat ini berisi penjualan F&B saja — **tidak ada transaksi Barber**,
+> sehingga kategori Barber tidak muncul. Bila export berikutnya menyertakan layanan
+> Barber (kode `B…`), kategori tersebut akan otomatis ikut tergenerasi.
 
 ## Teknologi
 
