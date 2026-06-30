@@ -97,7 +97,7 @@ export default function MyRecommendationsPage({ menus, orders }) {
             </div>
             <div style={{ fontSize: '.74rem', color: 'var(--gray3)', marginTop: '.4rem' }}>
               Untuk satu pengguna, HR/NDCG bernilai hit (1) atau miss (0). Rata-rata seluruh
-              data uji menghasilkan HR@10 = 0,3439 dan NDCG@10 = 0,1825.
+              data uji menghasilkan HR@10 = 0,3500 dan NDCG@10 = 0,1822.
             </div>
           </div>
         </div>
