@@ -55,8 +55,8 @@ export function getNCFRecommendations(userId, menus, orders, topN = 10) {
 }
 
 /**
- * Format skor sebagai persentase string, misal 0.8734 → "87.3%"
+ * Format skor sebagai desimal (4 angka), gaya Indonesia. Misal 0.5413 → "0,5413".
  */
 export function formatScore(score) {
-  return (score * 100).toFixed(1) + '%';
+  return Number(score).toFixed(4).replace('.', ',');
 }
